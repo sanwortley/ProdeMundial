@@ -7,6 +7,9 @@ echo "Installing backend dependencies..."
 cd "$ROOT_DIR/backend"
 pip install -r requirements.txt
 
+echo "Installing Node.js..."
+apt-get update -qq && apt-get install -y -qq nodejs npm
+
 echo "Building frontend..."
 cd "$ROOT_DIR/frontend"
 npm ci && npm run build
