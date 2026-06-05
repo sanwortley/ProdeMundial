@@ -15,6 +15,7 @@ import Ranking from './pages/Ranking'
 import GroupSettings from './pages/GroupSettings'
 import Rules from './pages/Rules'
 import Fantasy from './pages/Fantasy'
+import DueloPage from './pages/DueloPage'
 
 // Components
 import Navbar from './components/Navbar'
@@ -98,6 +99,16 @@ function App() {
           <Route path="/groups/:groupId/fantasy" element={
             <ProtectedRoute>
               <Layout><Fantasy /></Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/duel/:dueloId" element={
+            <ProtectedRoute>
+              <div className="flex flex-col min-h-screen bg-soccer-dark">
+                <main className="flex-1 bg-gradient-pitch">
+                  <DueloPage />
+                </main>
+              </div>
             </ProtectedRoute>
           } />
 

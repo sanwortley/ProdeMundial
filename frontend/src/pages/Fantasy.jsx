@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Users, Search, Shield, Trophy, Swords, X, Play } from 'lucide-react'
+import { ArrowLeft, Users, Search, Shield, Trophy, Swords, X, Play, Zap } from 'lucide-react'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import Pitch from '../components/Pitch'
+import DueloNotification from '../components/DueloNotification'
 
 const POSITIONS_MAP = [
   { value: '', label: 'Todas' },
@@ -36,6 +37,12 @@ export default function Fantasy() {
   const [fechas, setFechas] = useState([])
   const [simulating, setSimulating] = useState(false)
 
+  // Duelo state
+  const [duelos, setDuelos] = useState([])
+  const [disponibles, setDisponibles] = useState([])
+  const [showDueloModal, setShowDueloModal] = useState(false)
+  const [challenging, setChallenging] = useState(false)
+
   // Unique teams extracted from allPlayers
   const teams = useMemo(() => {
     const t = [...new Set(allPlayers.map((p) => p.equipo_nacional))]
@@ -60,6 +67,7 @@ export default function Fantasy() {
     loadRanking()
     loadH2H()
     loadFechas()
+    loadDuelos()
   }, [groupId])
 
   async function loadAllPlayers() {
@@ -122,6 +130,55 @@ export default function Fantasy() {
 
   async function loadH2H() {
     await Promise.all([loadH2HMatches(), loadH2HStandings()])
+  }
+
+  async function loadDuelos() {
+    try {
+      const res = await api.get('/fantasy/duel/mis-duelos')
+      setDuelos(res.data)
+    } catch (e) {
+      console.error('Error loading duelos:', e)
+    }
+  }
+
+  async function loadDisponibles() {
+    try {
+      const res = await api.get(`/fantasy/duel/disponibles`, { params: { grupo_id: groupId } })
+      setDisponibles(res.data)
+    } catch (e) {
+      console.error('Error loading disponibles:', e)
+    }
+  }
+
+  async function handleChallenge(rivalId) {
+    try {
+      setChallenging(true)
+      const res = await api.post(`/fantasy/duel/challenge/${rivalId}`, null, { params: { grupo_id: groupId } })
+      setShowDueloModal(false)
+      await loadDuelos()
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Error al retar')
+    } finally {
+      setChallenging(false)
+    }
+  }
+
+  async function handleAcceptDuelo(dueloId) {
+    try {
+      const res = await api.post(`/fantasy/duel/${dueloId}/accept`)
+      window.location.href = `/duel/${dueloId}`
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Error al aceptar')
+    }
+  }
+
+  async function handleRejectDuelo(dueloId) {
+    try {
+      await api.post(`/fantasy/duel/${dueloId}/reject`)
+      await loadDuelos()
+    } catch (e) {
+      console.error('Error rejecting:', e)
+    }
   }
 
   async function loadFechas() {
@@ -565,6 +622,9 @@ export default function Fantasy() {
         </div>
       )}
 
+      {/* Duelo Notification */}
+      <DueloNotification groupId={groupId} />
+
       {/* Tab: H2H */}
       {tab === 'h2h' && (
         <div>
@@ -580,6 +640,98 @@ export default function Fantasy() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Duelos */}
+              <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-soccer-green" /> Duelos ⚽
+                  </h3>
+                  {team?.jugadores?.length === 11 && (
+                    <button onClick={() => { loadDisponibles(); setShowDueloModal(true) }}
+                      className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30 transition-all">
+                      Retar a un jugador
+                    </button>
+                  )}
+                </div>
+                <div className="divide-y divide-slate-800/50">
+                  {duelos.filter(d => d.estado !== 'finished' && d.estado !== 'cancelled').length === 0 ? (
+                    <div className="p-4 text-center text-slate-500 text-xs">
+                      {team?.jugadores?.length === 11
+                        ? 'Retá a un jugador para jugar un partido!'
+                        : 'Necesitás 11 jugadores para retar'}
+                    </div>
+                  ) : (
+                    duelos.filter(d => d.estado !== 'finished' && d.estado !== 'cancelled').map((d) => {
+                      const soyRetador = d.id_retador === user?.id_usuario
+                      const otroNombre = soyRetador ? d.rival_nombre : d.retador_nombre
+                      return (
+                        <div key={d.id_duelo} className="flex items-center justify-between px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Zap className={`w-4 h-4 ${d.estado === 'playing' ? 'text-soccer-green animate-pulse' : 'text-yellow-400'}`} />
+                            <div>
+                              <span className="text-sm font-semibold text-slate-200">vs {otroNombre}</span>
+                              <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                d.estado === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-soccer-green/20 text-soccer-green'
+                              }`}>
+                                {d.estado === 'pending' ? 'Pendiente' : 'Jugando'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-1.5">
+                            {d.estado === 'playing' && (
+                              <a href={`/duel/${d.id_duelo}`}
+                                className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30">
+                                Ir al partido
+                              </a>
+                            )}
+                            {d.estado === 'pending' && !soyRetador && (
+                              <>
+                                <button onClick={() => handleAcceptDuelo(d.id_duelo)}
+                                  className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30">
+                                  Aceptar
+                                </button>
+                                <button onClick={() => handleRejectDuelo(d.id_duelo)}
+                                  className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg hover:bg-red-500/30">
+                                  Rechazar
+                                </button>
+                              </>
+                            )}
+                            {d.estado === 'pending' && soyRetador && (
+                              <span className="text-[10px] text-slate-500 px-2.5 py-1">Esperando...</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+                {/* Duelos finalizados */}
+                {duelos.filter(d => d.estado === 'finished' || d.estado === 'cancelled').length > 0 && (
+                  <div className="border-t border-slate-800/50">
+                    <div className="p-3">
+                      <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Historial</h4>
+                      <div className="space-y-1">
+                        {duelos.filter(d => d.estado === 'finished' || d.estado === 'cancelled').slice(0, 5).map((d) => {
+                          const soyRetador = d.id_retador === user?.id_usuario
+                          const otroNombre = soyRetador ? d.rival_nombre : d.retador_nombre
+                          const misGoles = soyRetador ? d.goles_retador : d.goles_rival
+                          const susGoles = soyRetador ? d.goles_rival : d.goles_retador
+                          const gane = d.ganador_id === user?.id_usuario
+                          return (
+                            <div key={d.id_duelo} className="flex items-center justify-between text-xs">
+                              <span className="text-slate-400">vs {otroNombre}</span>
+                              <span className={`font-bold ${gane ? 'text-soccer-green' : d.ganador_id ? 'text-red-400' : 'text-slate-400'}`}>
+                                {misGoles}-{susGoles} {gane ? '🏆' : d.ganador_id ? '😔' : '🤝'}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Fixture de la fecha actual */}
               <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
                 <div className="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -674,6 +826,40 @@ export default function Fantasy() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Duelo modal */}
+      {showDueloModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowDueloModal(false)}>
+          <div className="glass-card rounded-2xl border border-slate-700 w-full max-w-sm p-4"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-200">Jugadores disponibles</h3>
+              <button onClick={() => setShowDueloModal(false)}
+                className="text-slate-400 hover:text-slate-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {disponibles.length === 0 ? (
+              <p className="text-slate-500 text-xs text-center py-4">No hay jugadores disponibles con 11 jugadores</p>
+            ) : (
+              <div className="space-y-2">
+                {disponibles.map((u) => (
+                  <div key={u.id_usuario}
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-800/50">
+                    <span className="text-sm font-semibold text-slate-200">{u.nombre}</span>
+                    <button onClick={() => handleChallenge(u.id_usuario)}
+                      disabled={challenging}
+                      className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30 transition-all disabled:opacity-50">
+                      {challenging ? '...' : 'Retar'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

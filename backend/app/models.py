@@ -186,3 +186,41 @@ class PartidoFantasia(Base):
     __table_args__ = (
         UniqueConstraint("id_grupo", "fecha", "id_local", name="uq_h2h_fecha_local"),
     )
+
+
+class Duelo(Base):
+    __tablename__ = "duelos"
+
+    id_duelo = Column(Integer, primary_key=True, index=True)
+    id_retador = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), nullable=False)
+    id_rival = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), nullable=False)
+    id_grupo = Column(Integer, ForeignKey("grupos.id_grupo", ondelete="CASCADE"), nullable=True)
+    estado = Column(String(20), default="pending")  # pending / playing / finished / cancelled
+    ronda_actual = Column(Integer, default=1)
+    goles_retador = Column(Integer, default=0)
+    goles_rival = Column(Integer, default=0)
+    ganador_id = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="SET NULL"), nullable=True)
+    turno_atacante_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    retador = relationship("Usuario", foreign_keys=[id_retador])
+    rival = relationship("Usuario", foreign_keys=[id_rival])
+    ganador = relationship("Usuario", foreign_keys=[ganador_id])
+    grupo = relationship("Grupo")
+    rondas = relationship("RondaDuelo", back_populates="duelo", cascade="all, delete-orphan")
+
+
+class RondaDuelo(Base):
+    __tablename__ = "rondas_duelo"
+
+    id_ronda = Column(Integer, primary_key=True, index=True)
+    id_duelo = Column(Integer, ForeignKey("duelos.id_duelo", ondelete="CASCADE"), nullable=False)
+    numero = Column(Integer, nullable=False)  # 1-5
+    atacante_id = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), nullable=False)
+    posicion_atacante = Column(Integer, nullable=True)  # 1-5, null = timeout
+    posicion_arquero = Column(Integer, nullable=True)   # 1-5, null = timeout
+    es_gol = Column(Boolean, default=False)
+    pateador_nombre = Column(String, nullable=True)  # player name for anim
+
+    duelo = relationship("Duelo", back_populates="rondas")
+    atacante = relationship("Usuario", foreign_keys=[atacante_id])

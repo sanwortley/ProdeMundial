@@ -14,7 +14,7 @@ from .limiter import limiter
 from .models import Partido, Usuario
 from .seed_data import seed_matches
 from .seed_players import seed_players
-from .routes import auth_routes, group_routes, match_routes, prediction_routes, ranking_routes, fantasy_routes, fantasy_h2h_routes, admin_routes
+from .routes import auth_routes, group_routes, match_routes, prediction_routes, ranking_routes, fantasy_routes, fantasy_h2h_routes, admin_routes, duel_routes
 from .sync_service import auto_sync_matches
 
 logger = logging.getLogger(__name__)
@@ -123,6 +123,16 @@ app.include_router(ranking_routes.router)
 app.include_router(fantasy_routes.router)
 app.include_router(fantasy_h2h_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(duel_routes.router)
+
+
+# WebSocket: Duel endpoint
+from fastapi import WebSocket, WebSocketDisconnect, Query as WsQuery
+from .duel_manager import handle_duel_ws
+
+@app.websocket("/ws/duel/{duelo_id}")
+async def websocket_duel(websocket: WebSocket, duelo_id: int, token: str = WsQuery(...)):
+    await handle_duel_ws(websocket, duelo_id, token)
 
 
 # Serve built frontend in production (catch-all for SPA)
