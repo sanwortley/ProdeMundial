@@ -158,6 +158,7 @@ class JugadorEquipoFecha(Base):
     id_jugador = Column(Integer, ForeignKey("jugadores.id_jugador", ondelete="CASCADE"), nullable=False)
     posicion_cancha = Column(String, nullable=True)  # "GK","LB","CB","RB","LM","CM","RM","LW","ST","RW"
     orden = Column(Integer, default=0)
+    precio_compra = Column(Integer, default=0)  # Price paid when picked (locks value for budget)
 
     # Relationships
     equipo = relationship("EquipoFecha", back_populates="jugadores")

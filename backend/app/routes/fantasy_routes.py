@@ -31,6 +31,7 @@ class EquipoFechaResponse(BaseModel):
     presupuesto_restante: int
     puntos_totales: int
     jugadores: List["JugadorEquipoResponse"] = []
+    jugadores_no_disponibles: List[int] = []
 
     class Config:
         from_attributes = True
@@ -206,6 +207,15 @@ def _load_team_response(db: Session, team: EquipoFecha):
             valor_inicial=j.valor_inicial,
         ))
 
+    # Players already taken by other users in this group for this fecha
+    taken_ids = db.query(JugadorEquipoFecha.id_jugador).join(
+        EquipoFecha, JugadorEquipoFecha.id_equipo == EquipoFecha.id_equipo
+    ).filter(
+        EquipoFecha.id_grupo == team.id_grupo,
+        EquipoFecha.fecha == team.fecha,
+        EquipoFecha.id_usuario != team.id_usuario
+    ).all()
+
     return EquipoFechaResponse(
         id_equipo=team.id_equipo,
         id_grupo=team.id_grupo,
@@ -214,6 +224,7 @@ def _load_team_response(db: Session, team: EquipoFecha):
         presupuesto_restante=team.presupuesto_restante,
         puntos_totales=team.puntos_totales,
         jugadores=jugadores,
+        jugadores_no_disponibles=[t[0] for t in taken_ids],
     )
 
 
@@ -361,6 +372,7 @@ def pick_player(
         id_jugador=req.id_jugador,
         posicion_cancha=req.posicion_cancha or formation_slots[slot_idx] if slot_idx < len(formation_slots) else None,
         orden=slot_idx,
+        precio_compra=jugador.valor_inicial,
     )
     db.add(pick)
     team.presupuesto_restante -= jugador.valor_inicial
@@ -397,7 +409,7 @@ def drop_player(
     if not pick:
         raise HTTPException(status_code=404, detail="Ese jugador no está en tu equipo")
 
-    jugador_valor = pick.jugador.valor_inicial
+    jugador_valor = pick.precio_compra or pick.jugador.valor_inicial
 
     db.delete(pick)
     team.presupuesto_restante += jugador_valor

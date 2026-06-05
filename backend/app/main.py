@@ -51,6 +51,15 @@ try:
 finally:
     db.close()
 
+# Migrate: add precio_compra column to jugadores_equipo_fecha if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE jugadores_equipo_fecha ADD COLUMN precio_compra INTEGER DEFAULT 0"))
+        conn.commit()
+        logger.info("Added precio_compra column to jugadores_equipo_fecha (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Seed players from football-data.org
 db = SessionLocal()
 try:

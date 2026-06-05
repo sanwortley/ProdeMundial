@@ -204,9 +204,11 @@ export default function Fantasy() {
     }
   }
 
-  // Available players not already on this team
+  // Available players (not on my team, not taken by others in the group)
   const myPlayerIds = new Set((team?.jugadores || []).map((j) => j.id_jugador))
-  const availablePlayers = players.filter((p) => !myPlayerIds.has(p.id_jugador))
+  const takenPlayerIds = new Set(team?.jugadores_no_disponibles || [])
+  const availablePlayers = players.filter((p) => !myPlayerIds.has(p.id_jugador) && !takenPlayerIds.has(p.id_jugador))
+  const takenPlayers = players.filter((p) => takenPlayerIds.has(p.id_jugador))
 
   const tabs = [
     { id: 'draft', label: 'Armar', icon: Shield },
@@ -304,6 +306,9 @@ export default function Fantasy() {
 
               {/* Player list */}
               <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                <div className="text-[10px] text-slate-500 font-semibold mb-1">
+                  {availablePlayers.length} disponibles {takenPlayers.length > 0 ? `· ${takenPlayers.length} no disponibles` : ''}
+                </div>
                 {availablePlayers.map((p) => (
                   <div key={p.id_jugador}
                     className={`flex items-center justify-between p-2 rounded-xl transition-all ${
@@ -333,7 +338,29 @@ export default function Fantasy() {
                     </div>
                   </div>
                 ))}
-                {availablePlayers.length === 0 && (
+                {takenPlayers.length > 0 && (
+                  <div className="border-t border-slate-800 pt-2 mt-2">
+                    {takenPlayers.map((p) => (
+                      <div key={p.id_jugador}
+                        className="flex items-center justify-between p-2 rounded-xl opacity-40">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-400 truncate">{p.nombre}</div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-600">
+                            <span>{p.equipo_nacional}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              p.posicion === 'GK' ? 'bg-yellow-500/20 text-yellow-400' :
+                              p.posicion === 'DEF' ? 'bg-blue-500/20 text-blue-400' :
+                              p.posicion === 'MID' ? 'bg-purple-500/20 text-purple-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>{p.posicion}</span>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-red-400 font-semibold">No disponible</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {availablePlayers.length === 0 && takenPlayers.length === 0 && (
                   <div className="text-center text-slate-500 text-xs py-4">No hay jugadores disponibles</div>
                 )}
               </div>
