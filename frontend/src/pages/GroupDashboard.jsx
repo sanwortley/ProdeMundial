@@ -10,6 +10,9 @@ const GroupDashboard = () => {
   const [group, setGroup] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [nameUpdating, setNameUpdating] = useState(false)
 
   useEffect(() => {
     const fetchGroupDetails = async () => {
@@ -51,11 +54,6 @@ const GroupDashboard = () => {
       </div>
     )
   }
-
-  // Name editing state
-  const [editingName, setEditingName] = useState(false)
-  const [newName, setNewName] = useState(user?.nombre || '')
-  const [nameUpdating, setNameUpdating] = useState(false)
 
   const handleUpdateName = async () => {
     if (!newName.trim()) return
