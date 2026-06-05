@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Users, Search, Shield, Trophy, Swords, X } from 'lucide-react'
+import { ArrowLeft, Users, Search, Shield, Trophy, Swords, X, Play } from 'lucide-react'
 import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
 import Pitch from '../components/Pitch'
 
 const POSITIONS_MAP = [
@@ -16,6 +17,7 @@ const FORMATIONS = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1']
 
 export default function Fantasy() {
   const { groupId } = useParams()
+  const { user } = useAuth()
   const [tab, setTab] = useState('draft')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -31,6 +33,8 @@ export default function Fantasy() {
   const [h2hMatches, setH2hMatches] = useState([])
   const [h2hStandings, setH2hStandings] = useState([])
   const [h2hLoading, setH2hLoading] = useState(false)
+  const [fechas, setFechas] = useState([])
+  const [simulating, setSimulating] = useState(false)
 
   // Unique teams extracted from allPlayers
   const teams = useMemo(() => {
@@ -55,6 +59,7 @@ export default function Fantasy() {
     loadAllPlayers()
     loadRanking()
     loadH2H()
+    loadFechas()
   }, [groupId])
 
   async function loadAllPlayers() {
@@ -117,6 +122,30 @@ export default function Fantasy() {
 
   async function loadH2H() {
     await Promise.all([loadH2HMatches(), loadH2HStandings()])
+  }
+
+  async function loadFechas() {
+    try {
+      const res = await api.get('/fantasy/fechas')
+      setFechas(res.data)
+    } catch (e) {
+      console.error('Error loading fechas:', e)
+    }
+  }
+
+  async function handleSimulate(fecha) {
+    try {
+      setSimulating(true)
+      await api.post(`/admin/simulate-fecha/${encodeURIComponent(fecha)}`)
+      await loadFechas()
+      await loadTeam()
+      await loadRanking()
+      await loadH2H()
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Error al simular fecha')
+    } finally {
+      setSimulating(false)
+    }
   }
 
   async function handleInitH2H() {
@@ -264,7 +293,7 @@ export default function Fantasy() {
 
       {/* Tab: Draft */}
       {tab === 'draft' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <><div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left: Player list */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <div className="glass-card rounded-2xl p-4 border border-slate-800">
@@ -465,7 +494,28 @@ export default function Fantasy() {
             )}
           </div>
         </div>
-      )}
+
+        {/* Admin: Simulate fecha */}
+        {user?.is_admin && fechas.length > 0 && (
+          <div className="mt-4 glass-card rounded-2xl p-4 border border-amber-700/30 bg-amber-900/5">
+            <div className="flex items-center gap-2 mb-2">
+              <Play className="w-4 h-4 text-amber-400" />
+              <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Admin — Simular fecha</h4>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {fechas.filter(f => f.pendientes > 0).map((f) => (
+                <button key={f.fase} onClick={() => handleSimulate(f.fase)} disabled={simulating}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-600/30 transition-all disabled:opacity-50">
+                  {simulating ? '...' : `${f.fase} (${f.pendientes} pend)`}
+                </button>
+              ))}
+              {fechas.filter(f => f.pendientes > 0).length === 0 && (
+                <span className="text-xs text-slate-500">Todas las fechas están finalizadas</span>
+              )}
+            </div>
+          </div>
+        )}
+      </>)}
 
       {/* Tab: My Team */}
       {tab === 'team' && (
