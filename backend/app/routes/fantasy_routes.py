@@ -256,21 +256,27 @@ def get_team(
         from ..models import Partido
         now = __import__("datetime").datetime.utcnow()
         current = db.query(Partido.fase).filter(
-            Partido.fecha <= now
-        ).order_by(Partido.fecha.desc()).first()
+            Partido.fecha <= now,
+            Partido.finalizado == False
+        ).order_by(Partido.fecha.asc()).first()
+        if not current:
+            current = db.query(Partido.fase).order_by(Partido.fecha.asc()).first()
         if current:
             fecha = current[0]
         else:
-            upcoming = db.query(Partido.fase).order_by(Partido.fecha.asc()).first()
-            if not upcoming:
-                raise HTTPException(status_code=400, detail="No hay fechas disponibles")
-            fecha = upcoming[0]
+            raise HTTPException(status_code=400, detail="No hay fechas disponibles")
 
     team = db.query(EquipoFecha).filter(
         EquipoFecha.id_usuario == current_user.id_usuario,
         EquipoFecha.id_grupo == group_id,
         EquipoFecha.fecha == fecha
     ).first()
+
+    if not team:
+        team = db.query(EquipoFecha).filter(
+            EquipoFecha.id_usuario == current_user.id_usuario,
+            EquipoFecha.id_grupo == group_id
+        ).order_by(EquipoFecha.id_equipo.desc()).first()
 
     if not team:
         raise HTTPException(status_code=404, detail="No has armado equipo para esta fecha")

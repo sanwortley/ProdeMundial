@@ -155,20 +155,6 @@ export default function Fantasy() {
   async function loadH2H() {
     await loadH2HMatches()
   }
-  }
-
-  async function loadH2HStandings() {
-    try {
-      const res = await api.get(`/fantasy/h2h/standings/${groupId}`)
-      setH2hStandings(res.data)
-    } catch (e) {
-      if (e.response?.status !== 404) console.error('Error loading H2H standings:', e)
-    }
-  }
-
-  async function loadH2H() {
-    await Promise.all([loadH2HMatches(), loadH2HStandings()])
-  }
 
   async function loadDuelos() {
     try {
