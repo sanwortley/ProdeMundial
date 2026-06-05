@@ -49,6 +49,39 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Fix: reassign duplicate orden values in jugadores_equipo_fecha
+from sqlalchemy import text as sql_text
+with engine.connect() as conn:
+    try:
+        result = conn.execute(sql_text("""
+            SELECT id_equipo, MIN(orden) as min_orden, MAX(orden) as max_orden, COUNT(*) as total
+            FROM jugadores_equipo_fecha
+            GROUP BY id_equipo
+        """)).fetchall()
+        fixed = 0
+        for row in result:
+            equipo_id = row[0]
+            min_o = row[1]
+            max_o = row[2]
+            cnt = row[3]
+            # If orden values are all the same (e.g., all 0) or too similar
+            if cnt > 1 and (max_o - min_o < cnt - 1 or max_o >= 11):
+                players = conn.execute(sql_text("""
+                    SELECT id FROM jugadores_equipo_fecha
+                    WHERE id_equipo = :eid
+                    ORDER BY id
+                """), {"eid": equipo_id}).fetchall()
+                for idx, (pid,) in enumerate(players):
+                    conn.execute(sql_text("""
+                        UPDATE jugadores_equipo_fecha SET orden = :ord WHERE id = :pid
+                    """), {"ord": idx, "pid": pid})
+                fixed += cnt
+        conn.commit()
+        if fixed:
+            logger.info(f"Fixed {fixed} players with duplicate orden values (migration)")
+    except Exception as e:
+        logger.warning(f"Orden migration skipped: {e}")
+
 # Auto-promote first registered user to admin (if any user exists but none is admin)
 db = SessionLocal()
 try:

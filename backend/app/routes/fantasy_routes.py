@@ -197,7 +197,17 @@ def _load_team_response(db: Session, team: EquipoFecha):
     ).order_by(JugadorEquipoFecha.orden).all()
 
     jugadores = []
-    for je, j in picks:
+    seen_orden = set()
+    changed = False
+    for idx, (je, j) in enumerate(picks):
+        orden = je.orden
+        while orden < 0 or orden >= 11 or orden in seen_orden:
+            orden = next(i for i in range(11) if i not in seen_orden)
+            changed = True
+        seen_orden.add(orden)
+        if orden != je.orden:
+            je.orden = orden
+            changed = True
         jugadores.append(JugadorEquipoResponse(
             id=je.id,
             id_jugador=j.id_jugador,
@@ -209,6 +219,8 @@ def _load_team_response(db: Session, team: EquipoFecha):
             equipo_nacional=j.equipo_nacional,
             valor_inicial=j.valor_inicial,
         ))
+    if changed:
+        db.commit()
 
     # Players already taken by other users in this group for this fecha
     taken_ids = db.query(JugadorEquipoFecha.id_jugador).join(
@@ -345,38 +357,38 @@ def pick_player(
 
     # Determine position in formation
     formation_slots = FORMATIONS.get(formation, [])
+    taken_slots = set(je.orden for je, _ in existing_picks)
     slot_idx = None
-    for i, slot in enumerate(formation_slots):
-        if slot == req.posicion_cancha:
-            # Check if this slot is already taken
-            taken_positions = set()
-            for je, _ in existing_picks:
-                taken_positions.add(je.posicion_cancha or "")
-            if slot not in taken_positions or req.posicion_cancha is None:
-                slot_idx = i
-                break
 
-    if slot_idx is None and req.posicion_cancha is None:
-        # Prefer slot matching the player's specific position
+    # 1. If user clicked a specific slot, try to claim it
+    if req.posicion_cancha:
         for i, slot in enumerate(formation_slots):
-            taken_positions = set()
-            for je, _ in existing_picks:
-                taken_positions.add(je.posicion_cancha or "")
-            if slot not in taken_positions and slot == jugador.posicion_especifica:
+            if slot == req.posicion_cancha and i not in taken_slots:
                 slot_idx = i
                 break
 
+    # 2. Otherwise, prefer slot matching the player's specific position
     if slot_idx is None:
-        # Assign to first available slot matching the role
         for i, slot in enumerate(formation_slots):
-            slot_role = POS_TO_ROLE.get(slot, "")
-            taken_positions = set()
-            for je, _ in existing_picks:
-                taken_positions.add(je.posicion_cancha or "")
-            if slot not in taken_positions and slot_role == assigned_role:
+            if i not in taken_slots and slot == jugador.posicion_especifica:
                 slot_idx = i
                 break
 
+    # 3. Fall back to first available slot matching the broad role
+    if slot_idx is None:
+        for i, slot in enumerate(formation_slots):
+            if i not in taken_slots and POS_TO_ROLE.get(slot, "") == assigned_role:
+                slot_idx = i
+                break
+
+    # 4. Last resort: any free slot
+    if slot_idx is None:
+        for i in range(len(formation_slots)):
+            if i not in taken_slots:
+                slot_idx = i
+                break
+
+    # 5. Failsafe: shouldn't happen if current_picks < 11
     if slot_idx is None:
         slot_idx = current_picks
 
