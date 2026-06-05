@@ -20,10 +20,10 @@ POSITION_MAP = {
 
 # Position base values (multiplied by age and tier to get final price in $M)
 BASE_VALUES = {
-    "GK": 7,
-    "DEF": 9,
-    "MID": 13,
-    "FWD": 17,
+    "GK": 12,
+    "DEF": 15,
+    "MID": 22,
+    "FWD": 28,
 }
 
 def _age_factor(age: int) -> float:
@@ -44,13 +44,13 @@ def _tier_mult() -> float:
     """Random quality tier: 5% stars, 15% good, 40% regular, 40% filler."""
     r = random.random()
     if r < 0.05:
-        return random.uniform(2.5, 3.5)    # World-class
+        return random.uniform(3.5, 5.5)    # World-class
     elif r < 0.20:
-        return random.uniform(1.6, 2.5)    # Good
+        return random.uniform(2.0, 3.5)    # Good
     elif r < 0.60:
-        return random.uniform(0.8, 1.6)    # Regular
+        return random.uniform(0.8, 2.0)    # Regular
     else:
-        return random.uniform(0.3, 0.8)    # Filler
+        return random.uniform(0.2, 0.8)    # Filler
 
 def revalue_all_players(db: Session):
     """Re-calculate prices for all existing players using new pricing tiers.

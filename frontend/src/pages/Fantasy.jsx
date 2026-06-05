@@ -30,7 +30,7 @@ export default function Fantasy() {
   const [filtroEquipo, setFiltroEquipo] = useState('')
   const [search, setSearch] = useState('')
   const [picking, setPicking] = useState(false)
-  const [budget, setBudget] = useState(200)
+  const [budget, setBudget] = useState(300)
   const [h2hMatches, setH2hMatches] = useState([])
   const [h2hStandings, setH2hStandings] = useState([])
   const [h2hLoading, setH2hLoading] = useState(false)
@@ -384,7 +384,7 @@ export default function Fantasy() {
                   </div>
                   <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-soccer-green to-emerald-400 rounded-full transition-all"
-                      style={{ width: `${(budget / 200) * 100}%` }} />
+                      style={{ width: `${(budget / 300) * 100}%` }} />
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">{team.jugadores.length}/11 jugadores</div>
                 </div>

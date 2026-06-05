@@ -26,7 +26,7 @@ const BottomNav = () => {
   const inactiveClass = "text-slate-500 hover:text-slate-300"
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-soccer-dark/90 backdrop-blur-lg border-t border-slate-800/80 md:hidden px-2 pb-safe-bottom">
+    <nav className="sticky bottom-0 left-0 right-0 z-40 bg-soccer-dark/90 backdrop-blur-lg border-t border-slate-800/80 md:hidden px-2 pb-safe-bottom">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
         {groupId ? (
           // Group dashboard navigation

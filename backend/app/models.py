@@ -137,7 +137,7 @@ class EquipoFecha(Base):
     id_grupo = Column(Integer, ForeignKey("grupos.id_grupo", ondelete="CASCADE"), nullable=False)
     fecha = Column(String, nullable=False)  # "Fecha 1", "Fecha 2", etc.
     formacion = Column(String, default="4-4-2")
-    presupuesto_restante = Column(Integer, default=200)
+    presupuesto_restante = Column(Integer, default=300)
     puntos_totales = Column(Integer, default=0)
 
     # Relationships

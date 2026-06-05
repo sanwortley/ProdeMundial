@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
-import { Trophy, CalendarDays, Settings, ShieldAlert, Award, Star, Flame, Target } from 'lucide-react'
+import { Trophy, CalendarDays, Settings, ShieldAlert, Award, Star, Flame, Target, Edit3, Check, X } from 'lucide-react'
 
 const GroupDashboard = () => {
   const { groupId } = useParams()
@@ -50,6 +50,29 @@ const GroupDashboard = () => {
         </Link>
       </div>
     )
+  }
+
+  // Name editing state
+  const [editingName, setEditingName] = useState(false)
+  const [newName, setNewName] = useState(user?.nombre || '')
+  const [nameUpdating, setNameUpdating] = useState(false)
+
+  const handleUpdateName = async () => {
+    if (!newName.trim()) return
+    setNameUpdating(true)
+    try {
+      const res = await api.put('/auth/profile', { nombre: newName.trim() })
+      // Update the auth context with the new name
+      const updatedUser = res.data
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      // Force a page refresh to reflect name in all places
+      window.location.reload()
+    } catch (err) {
+      console.error('Error updating name:', err)
+    } finally {
+      setNameUpdating(false)
+      setEditingName(false)
+    }
   }
 
   // Find current user's stats
@@ -190,6 +213,56 @@ const GroupDashboard = () => {
           </div>
         </Link>
         
+      </div>
+
+      {/* Profile / Name Change Card */}
+      <div className="glass-card rounded-3xl p-5 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-extrabold text-sm text-slate-300 uppercase tracking-wider">
+            Tu Perfil
+          </h3>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-2xl border border-slate-800">
+          <div className="w-9 h-9 rounded-full bg-soccer-green/20 border border-soccer-green/30 flex items-center justify-center text-soccer-green font-black text-sm shrink-0">
+            {(user?.nombre || '?')[0].toUpperCase()}
+          </div>
+          {editingName ? (
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-slate-200 font-semibold outline-none focus:border-soccer-green/50"
+                placeholder="Tu nombre..."
+                autoFocus
+              />
+              <button
+                onClick={handleUpdateName}
+                disabled={nameUpdating || !newName.trim()}
+                className="p-1.5 rounded-xl bg-soccer-green/20 text-soccer-green hover:bg-soccer-green/30 disabled:opacity-40 transition-colors"
+              >
+                {nameUpdating ? <span className="w-4 h-4 block border-2 border-soccer-green/30 border-t-soccer-green rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => { setEditingName(false); setNewName(user?.nombre || '') }}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-sm font-bold text-slate-200 flex-1">{user?.nombre}</span>
+              <button
+                onClick={() => { setNewName(user?.nombre || ''); setEditingName(true) }}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                title="Cambiar nombre"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mini Leaderboard Widget */}

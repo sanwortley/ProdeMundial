@@ -23,7 +23,7 @@ import BottomNav from './components/BottomNav'
 
 const Layout = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen pb-16 md:pb-0 bg-soccer-dark">
+    <div className="flex flex-col min-h-screen bg-soccer-dark">
       <Navbar />
       <main className="flex-1 bg-gradient-pitch min-h-[calc(100vh-60px)]">
         {children}

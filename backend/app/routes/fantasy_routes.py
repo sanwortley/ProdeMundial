@@ -119,7 +119,7 @@ def _get_or_create_team(db: Session, user_id: int, group_id: int, fecha: str, fo
             id_grupo=group_id,
             fecha=fecha,
             formacion=formacion,
-            presupuesto_restante=200,
+            presupuesto_restante=300,
             puntos_totales=0,
         )
         db.add(team)

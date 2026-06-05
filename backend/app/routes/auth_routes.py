@@ -13,6 +13,9 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class UpdateProfileRequest(BaseModel):
+    nombre: str
+
 @router.post("/register", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, user_in: UsuarioCreate, db: Session = Depends(get_db)):
@@ -40,6 +43,20 @@ def register(request: Request, user_in: UsuarioCreate, db: Session = Depends(get
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+@router.put("/profile", response_model=UsuarioResponse)
+def update_profile(
+    data: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    if not data.nombre.strip():
+        raise HTTPException(400, "El nombre no puede estar vacío")
+    current_user.nombre = data.nombre.strip()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 
 @router.post("/login")
