@@ -48,7 +48,6 @@ export default function Fantasy() {
   const [picking, setPicking] = useState(false)
   const [budget, setBudget] = useState(300)
   const [h2hMatches, setH2hMatches] = useState([])
-  const [h2hStandings, setH2hStandings] = useState([])
   const [h2hLoading, setH2hLoading] = useState(false)
   const [fechas, setFechas] = useState([])
   const [simulating, setSimulating] = useState(false)
@@ -146,14 +145,16 @@ export default function Fantasy() {
 
   async function loadH2HMatches() {
     try {
-      setH2hLoading(true)
       const res = await api.get(`/fantasy/h2h/matches/${groupId}`)
       setH2hMatches(res.data)
     } catch (e) {
-      if (e.response?.status !== 404) console.error('Error loading H2H matches:', e)
-    } finally {
-      setH2hLoading(false)
+      console.error('Error loading h2h:', e)
     }
+  }
+
+  async function loadH2H() {
+    await loadH2HMatches()
+  }
   }
 
   async function loadH2HStandings() {
@@ -824,98 +825,6 @@ export default function Fantasy() {
                 )}
               </div>
 
-              {/* Fixture de la fecha actual */}
-              <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Partidos — {team?.fecha || 'Fecha actual'}
-                  </h3>
-                  <span className="text-[10px] text-slate-500">{h2hMatches.filter(m => m.fecha === (team?.fecha || '')).length} partidos</span>
-                </div>
-                <div className="divide-y divide-slate-800/50">
-                  {h2hMatches
-                    .filter(m => m.fecha === (team?.fecha || ''))
-                    .map(m => (
-                      <div key={m.id_partido} className="flex items-center gap-3 px-4 py-3">
-                        <div className="flex-1 flex items-center justify-end gap-2">
-                          <span className={`text-sm font-bold text-right ${m.ganador === m.id_local ? 'text-soccer-green' : m.finalizado ? 'text-slate-300' : 'text-slate-400'}`}>
-                            {m.local}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {m.finalizado ? (
-                            <span className={`text-lg font-extrabold min-w-[60px] text-center ${
-                              m.puntos_local > m.puntos_visitante ? 'text-soccer-green' :
-                              m.puntos_local < m.puntos_visitante ? 'text-red-400' : 'text-slate-400'
-                            }`}>
-                              {m.puntos_local} - {m.puntos_visitante}
-                            </span>
-                          ) : (
-                            <span className="text-sm font-bold text-slate-500 min-w-[60px] text-center">vs</span>
-                          )}
-                        </div>
-                        <div className="flex-1 flex items-center gap-2">
-                          <span className={`text-sm font-bold ${m.ganador === m.id_visitante ? 'text-soccer-green' : m.finalizado ? 'text-slate-300' : 'text-slate-400'}`}>
-                            {m.visitante}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  {h2hMatches.filter(m => m.fecha === (team?.fecha || '')).length === 0 && (
-                    <div className="p-4 text-center text-slate-500 text-xs">No hay partidos para esta fecha</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tabla de posiciones */}
-              <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
-                <div className="p-4 border-b border-slate-800">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tabla de posiciones</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-slate-500 border-b border-slate-800/50">
-                        <th className="px-3 py-2 text-left">#</th>
-                        <th className="px-3 py-2 text-left">Nombre</th>
-                        <th className="px-3 py-2 text-center">PJ</th>
-                        <th className="px-3 py-2 text-center">PG</th>
-                        <th className="px-3 py-2 text-center">PE</th>
-                        <th className="px-3 py-2 text-center">PP</th>
-                        <th className="px-3 py-2 text-center">GF</th>
-                        <th className="px-3 py-2 text-center">GC</th>
-                        <th className="px-3 py-2 text-center">DG</th>
-                        <th className="px-3 py-2 text-center font-bold text-soccer-green">Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/50">
-                      {h2hStandings.map((s, i) => (
-                        <tr key={s.id_usuario} className="hover:bg-slate-800/30 transition-all">
-                          <td className={`px-3 py-2 font-bold ${
-                            i === 0 ? 'text-yellow-400' :
-                            i === 1 ? 'text-slate-300' :
-                            i === 2 ? 'text-amber-600' : 'text-slate-500'
-                          }`}>{i + 1}</td>
-                          <td className="px-3 py-2 font-semibold text-slate-200">{s.nombre}</td>
-                          <td className="px-3 py-2 text-center text-slate-400">{s.pj}</td>
-                          <td className="px-3 py-2 text-center text-soccer-green">{s.pg}</td>
-                          <td className="px-3 py-2 text-center text-yellow-400">{s.pe}</td>
-                          <td className="px-3 py-2 text-center text-red-400">{s.pp}</td>
-                          <td className="px-3 py-2 text-center text-slate-300">{s.gf}</td>
-                          <td className="px-3 py-2 text-center text-slate-300">{s.gc}</td>
-                          <td className={`px-3 py-2 text-center font-bold ${
-                            s.dg > 0 ? 'text-soccer-green' : s.dg < 0 ? 'text-red-400' : 'text-slate-400'
-                          }`}>{s.dg > 0 ? `+${s.dg}` : s.dg}</td>
-                          <td className="px-3 py-2 text-center font-bold text-soccer-green">{s.pts}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {h2hStandings.length === 0 && (
-                  <div className="p-4 text-center text-slate-500 text-xs">Sin partidos disputados todavía</div>
-                )}
-              </div>
             </div>
           )}
         </div>
