@@ -8,12 +8,42 @@ from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@prodemundial.com")
+RESEND_FROM = os.getenv("RESEND_FROM", "Prode Mundial 2026 <noreply@resend.dev>")
+
+
+def _send_via_resend(to_email: str, subject: str, body_html: str) -> bool:
+    data = {
+        "from": RESEND_FROM,
+        "to": [to_email],
+        "subject": subject,
+        "html": body_html,
+    }
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(data).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if resp.status == 200:
+                logger.info(f"Resend email sent to {to_email}")
+                return True
+            logger.error(f"Resend returned {resp.status} for {to_email}")
+            return False
+    except Exception as e:
+        logger.error(f"Resend failed for {to_email}: {e}")
+        return False
 
 
 def _send_via_sendgrid(to_email: str, subject: str, body_html: str) -> bool:
@@ -60,6 +90,8 @@ def _send_via_smtp(to_email: str, subject: str, body_html: str) -> bool:
 
 
 def send_email(to_email: str, subject: str, body_html: str) -> bool:
+    if RESEND_API_KEY:
+        return _send_via_resend(to_email, subject, body_html)
     if SENDGRID_API_KEY:
         return _send_via_sendgrid(to_email, subject, body_html)
     if SMTP_USER and SMTP_PASSWORD:
@@ -68,5 +100,5 @@ def send_email(to_email: str, subject: str, body_html: str) -> bool:
         except Exception as e:
             logger.error(f"SMTP failed for {to_email}: {e}")
             return False
-    logger.warning("No email transport configured (SENDGRID_API_KEY or SMTP_USER/SMTP_PASSWORD)")
+    logger.warning("No email transport configured (RESEND_API_KEY / SENDGRID_API_KEY / SMTP)")
     return False
