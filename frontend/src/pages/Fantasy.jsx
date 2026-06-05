@@ -218,6 +218,15 @@ export default function Fantasy() {
     }
   }
 
+  async function handleCancelDuelo(dueloId) {
+    try {
+      await api.post(`/fantasy/duel/${dueloId}/cancel`)
+      await loadDuelos()
+    } catch (e) {
+      console.error('Error cancelling:', e)
+    }
+  }
+
   async function loadFechas() {
     try {
       const res = await api.get('/fantasy/fechas')
@@ -756,10 +765,16 @@ export default function Fantasy() {
                           </div>
                           <div className="flex gap-1.5">
                             {d.estado === 'playing' && (
+                              <>
                               <a href={`/duel/${d.id_duelo}`}
                                 className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30">
                                 Ir al partido
                               </a>
+                              <button onClick={() => handleCancelDuelo(d.id_duelo)}
+                                className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg hover:bg-red-500/30">
+                                Cancelar
+                              </button>
+                              </>
                             )}
                             {d.estado === 'pending' && !soyRetador && (
                               <>

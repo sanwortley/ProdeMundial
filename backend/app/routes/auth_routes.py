@@ -28,6 +28,11 @@ class ResetPasswordRequest(BaseModel):
     token: str
     password: str
 
+class ResetWithSecretRequest(BaseModel):
+    email: EmailStr
+    secret_phrase: str
+    password: str
+
 @router.post("/register", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, user_in: UsuarioCreate, db: Session = Depends(get_db)):
@@ -45,11 +50,16 @@ def register(request: Request, user_in: UsuarioCreate, db: Session = Depends(get
     # Auto-promote to admin if no admin exists yet
     is_admin = db.query(Usuario).filter(Usuario.is_admin == True).first() is None
     
+    secret_hash = None
+    if user_in.secret_phrase:
+        secret_hash = get_password_hash(user_in.secret_phrase)
+    
     db_user = Usuario(
         nombre=user_in.nombre,
         email=user_in.email,
         password_hash=hashed_password,
-        is_admin=is_admin
+        is_admin=is_admin,
+        secret_phrase_hash=secret_hash,
     )
     db.add(db_user)
     db.commit()
@@ -155,6 +165,27 @@ async def forgot_password(request: Request, data: ForgotPasswordRequest, db: Ses
         logger.warning(f"RESET LINK (fallback): {reset_link}")
 
     return {"message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."}
+
+
+@router.post("/reset-with-secret")
+async def reset_with_secret(data: ResetWithSecretRequest, db: Session = Depends(get_db)):
+    user = db.query(Usuario).filter(Usuario.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Correo no encontrado.")
+    if not user.secret_phrase_hash:
+        raise HTTPException(status_code=400, detail="Este usuario no tiene frase secreta configurada.")
+
+    if not verify_password(data.secret_phrase, user.secret_phrase_hash):
+        raise HTTPException(status_code=400, detail="Frase secreta incorrecta.")
+
+    if len(data.password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres.")
+
+    user.password_hash = get_password_hash(data.password)
+    user.session_token = secrets.token_urlsafe(32)
+    db.commit()
+
+    return {"message": "Contraseña actualizada correctamente."}
 
 
 @router.post("/reset-password")

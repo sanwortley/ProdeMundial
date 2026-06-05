@@ -12,6 +12,7 @@ class Usuario(Base):
     password_hash = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
     session_token = Column(String, nullable=True)
+    secret_phrase_hash = Column(String, nullable=True)
     fecha_registro = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships

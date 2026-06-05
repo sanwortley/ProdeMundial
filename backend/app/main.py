@@ -40,6 +40,15 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: add secret_phrase_hash column to usuarios if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE usuarios ADD COLUMN secret_phrase_hash VARCHAR"))
+        conn.commit()
+        logger.info("Added secret_phrase_hash column to usuarios table (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Migrate: add posicion_especifica column to jugadores if missing
 with engine.connect() as conn:
     try:

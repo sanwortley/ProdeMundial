@@ -219,6 +219,25 @@ def rechazar_duelo(
     return _duelo_to_response(duelo, db)
 
 
+@router.post("/{duelo_id}/cancel", response_model=DueloResponse)
+def cancelar_duelo(
+    duelo_id: int,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(get_current_user),
+):
+    duelo = db.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
+    if not duelo:
+        raise HTTPException(404, "Duelo no encontrado")
+    if user.id_usuario not in (duelo.id_retador, duelo.id_rival):
+        raise HTTPException(403, "No participás en este duelo")
+    if duelo.estado in ("finished", "cancelled"):
+        raise HTTPException(400, "El duelo ya terminó o fue cancelado")
+    duelo.estado = "cancelled"
+    db.commit()
+    db.refresh(duelo)
+    return _duelo_to_response(duelo, db)
+
+
 @router.get("/{duelo_id}", response_model=DueloResponse)
 def obtener_duelo(
     duelo_id: int,

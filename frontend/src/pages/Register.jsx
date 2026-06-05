@@ -12,6 +12,7 @@ const Register = () => {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [secret_phrase, setSecretPhrase] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -30,7 +31,7 @@ const Register = () => {
     setLoading(true)
     setError('')
 
-    const result = await register(nombre, email, password)
+    const result = await register(nombre, email, password, secret_phrase)
     if (result.success) {
       navigate('/my-groups')
     } else {
@@ -91,6 +92,15 @@ const Register = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
+          />
+
+          <Input
+            label="Frase secreta (para recuperar tu cuenta si olvidás la contraseña)"
+            id="secret_phrase"
+            type="text"
+            value={secret_phrase}
+            onChange={(e) => setSecretPhrase(e.target.value)}
+            placeholder="ej: Mi equipo favorito es River"
           />
 
           <Button

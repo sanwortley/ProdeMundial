@@ -18,6 +18,7 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCreate(UsuarioBase):
     password: str = Field(..., min_length=6)
+    secret_phrase: str = ""
 
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
