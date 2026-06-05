@@ -9,5 +9,6 @@ passlib[bcrypt]
 python-multipart
 python-dotenv
 bcrypt
+email-validator
 apscheduler
 slowapi
