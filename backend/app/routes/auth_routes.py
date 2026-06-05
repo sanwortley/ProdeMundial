@@ -151,7 +151,8 @@ async def forgot_password(request: Request, data: ForgotPasswordRequest, db: Ses
     success = send_email(user.email, "Restablecés tu contraseña - Prode Mundial 2026", body_html)
     if not success:
         logger = __import__('logging').getLogger(__name__)
-        logger.warning(f"Password reset email failed to send to {user.email}, but pretending it worked")
+        logger.warning(f"Password reset email FAILED for {user.email}")
+        logger.warning(f"RESET LINK (fallback): {reset_link}")
 
     return {"message": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."}
 
