@@ -36,6 +36,13 @@ export default function Fantasy() {
   const [h2hLoading, setH2hLoading] = useState(false)
   const [fechas, setFechas] = useState([])
   const [simulating, setSimulating] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Duelo state
   const [duelos, setDuelos] = useState([])
@@ -509,7 +516,7 @@ export default function Fantasy() {
                 </div>
 
                 {/* Pitch */}
-                <Pitch formation={formation} players={team.jugadores} />
+                <Pitch formation={formation} players={team.jugadores} compact={isMobile} />
 
                 {/* Current squad summary */}
                 <div className="glass-card rounded-2xl p-4 border border-slate-800 mt-4">
@@ -589,7 +596,7 @@ export default function Fantasy() {
                   <span className="text-slate-400">Puntos: <strong className="text-soccer-green">{team.puntos_totales}</strong></span>
                 </div>
               </div>
-              <Pitch formation={formation} players={team.jugadores} />
+              <Pitch formation={formation} players={team.jugadores} compact={isMobile} />
               <div className="glass-card rounded-2xl p-4 border border-slate-800 mt-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {team.jugadores.map((j) => (
