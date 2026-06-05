@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 active_duels: dict[int, dict[int, WebSocket]] = {}
 game_tasks: dict[int, asyncio.Task] = {}
+message_queues: dict[int, dict[int, asyncio.Queue]] = {}
 
 ROUND_TIMEOUT = 10
 ANIMATION_DURATION = 10
@@ -48,10 +49,11 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
 
     if duelo_id not in active_duels:
         active_duels[duelo_id] = {}
+        message_queues[duelo_id] = {}
     active_duels[duelo_id][user_id] = websocket
+    message_queues[duelo_id][user_id] = asyncio.Queue()
 
     # If duelo is pending and both players connected, start game
-    duelo = None
     db = SessionLocal()
     try:
         duelo = db.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
@@ -60,20 +62,22 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
             if other_id in active_duels.get(duelo_id, {}):
                 duelo.estado = "playing"
                 db.commit()
-                # Only the first user to reach this point starts the game
                 if duelo_id not in game_tasks:
                     task = asyncio.create_task(_run_game(duelo_id))
                     game_tasks[duelo_id] = task
     finally:
         db.close()
 
-    # Passive listener - just keep connection alive, game logic runs in _run_game
+    # Listen for messages and put them in the queue for _run_game to consume
     try:
         while True:
             try:
-                await asyncio.wait_for(websocket.receive_json(), timeout=60)
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=60)
+                if data.get("type") in ("shoot", "defend"):
+                    q = message_queues.get(duelo_id, {}).get(user_id)
+                    if q:
+                        await q.put(data)
             except asyncio.TimeoutError:
-                # Send ping
                 try:
                     await websocket.send_json({"type": "ping"})
                 except Exception:
@@ -83,9 +87,13 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
     finally:
         if duelo_id in active_duels:
             active_duels[duelo_id].pop(user_id, None)
-            if not active_duels[duelo_id]:
-                del active_duels[duelo_id]
-        # Cancel game if both disconnected
+        if duelo_id in message_queues:
+            message_queues[duelo_id].pop(user_id, None)
+        if duelo_id in active_duels and not active_duels[duelo_id]:
+            del active_duels[duelo_id]
+        if duelo_id in message_queues and not message_queues[duelo_id]:
+            del message_queues[duelo_id]
+
         if duelo_id not in active_duels or len(active_duels.get(duelo_id, {})) == 0:
             if duelo_id in game_tasks:
                 game_tasks[duelo_id].cancel()
@@ -161,14 +169,14 @@ async def _run_game(duelo_id: int):
             pos_arquero = None
 
             async def recv_choice(uid: int, expected_type: str) -> int | None:
-                ws = active_duels.get(duelo_id, {}).get(uid)
-                if not ws:
+                q = message_queues.get(duelo_id, {}).get(uid)
+                if not q:
                     return None
                 try:
-                    data = await asyncio.wait_for(ws.receive_json(), timeout=ROUND_TIMEOUT)
+                    data = await asyncio.wait_for(q.get(), timeout=ROUND_TIMEOUT)
                     if data.get("type") == expected_type:
                         return data.get("posicion")
-                except (asyncio.TimeoutError, WebSocketDisconnect):
+                except asyncio.TimeoutError:
                     pass
                 return None
 
