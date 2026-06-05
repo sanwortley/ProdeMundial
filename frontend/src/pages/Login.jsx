@@ -81,6 +81,13 @@ const Login = () => {
             required
           />
 
+          <Link
+            to="/forgot-password"
+            className="text-xs text-soccer-green/70 hover:text-soccer-green font-semibold -mt-2 self-end transition-colors"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+
           <Button
             type="submit"
             variant="primary"

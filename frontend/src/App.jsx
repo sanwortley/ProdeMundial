@@ -6,6 +6,8 @@ import ProtectedRoute from './routes/ProtectedRoute'
 // Pages
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import MyGroups from './pages/MyGroups'
 import CreateGroup from './pages/CreateGroup'
 import JoinGroup from './pages/JoinGroup'
@@ -41,6 +43,8 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Protected Routes */}
           <Route path="/my-groups" element={
