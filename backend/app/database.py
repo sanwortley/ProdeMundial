@@ -8,11 +8,15 @@ from dotenv import load_dotenv
 # Load env variables from parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-# Resolve to an absolute path so the DB always ends up at backend/prode.db
 BACKEND_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = BACKEND_DIR / "prode.db"
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 if not DATABASE_URL:
-    DATABASE_URL = f"sqlite:///{BACKEND_DIR / 'prode.db'}"
+    DATABASE_URL = f"sqlite:///{DEFAULT_DB_PATH}"
+elif DATABASE_URL.startswith("sqlite:///./"):
+    # Resolve relative path to backend/ so the DB is always at backend/prode.db
+    rel = DATABASE_URL.replace("sqlite:///./", "")
+    DATABASE_URL = f"sqlite:///{BACKEND_DIR / rel}"
 
 # Fallback for old postgres:// uri format used by some platforms
 if DATABASE_URL.startswith("postgres://"):
