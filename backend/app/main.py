@@ -40,6 +40,15 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: add posicion_especifica column to jugadores if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE jugadores ADD COLUMN posicion_especifica VARCHAR"))
+        conn.commit()
+        logger.info("Added posicion_especifica column to jugadores table (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Auto-promote first registered user to admin (if any user exists but none is admin)
 db = SessionLocal()
 try:

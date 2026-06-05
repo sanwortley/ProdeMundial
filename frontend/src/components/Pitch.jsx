@@ -57,7 +57,7 @@ const FORMATION_POSITIONS = {
   ],
 }
 
-export default function Pitch({ formation = '4-4-2', players = [], onSlotClick, compact = false }) {
+export default function Pitch({ formation = '4-4-2', players = [], onSlotClick, compact = false, selectedSlotId }) {
   const positions = FORMATION_POSITIONS[formation] || FORMATION_POSITIONS['4-4-2']
 
   // Match players to slot positions by orden (slot index), not by posicion_cancha
@@ -126,9 +126,9 @@ export default function Pitch({ formation = '4-4-2', players = [], onSlotClick, 
             className="cursor-pointer">
             {/* Position circle */}
             <circle cx={px} cy={py} r={compact ? 5 : 6}
-              fill={player ? '#1e293b' : '#0f172a'}
-              stroke={player ? '#10b981' : '#334155'}
-              strokeWidth={player ? 1.2 : 0.8}
+              fill={selectedSlotId === slot.id ? '#065f46' : (player ? '#1e293b' : '#0f172a')}
+              stroke={selectedSlotId === slot.id ? '#34d399' : (player ? '#10b981' : '#334155')}
+              strokeWidth={selectedSlotId === slot.id ? 2 : (player ? 1.2 : 0.8)}
               opacity={player ? 1 : 0.6} />
 
             {player ? (

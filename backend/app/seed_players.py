@@ -52,6 +52,25 @@ def _tier_mult() -> float:
     else:
         return random.uniform(0.2, 0.8)    # Filler
 
+SPECIFIC_POSITIONS = {
+    "GK": ["GK"],
+    "DEF": ["CB", "LB", "RB"],
+    "MID": ["CM", "CDM", "CAM", "LM", "RM"],
+    "FWD": ["ST", "LW", "RW"],
+}
+
+SPECIFIC_WEIGHTS = {
+    "GK": [1],
+    "DEF": [0.5, 0.25, 0.25],
+    "MID": [0.3, 0.2, 0.2, 0.15, 0.15],
+    "FWD": [0.4, 0.3, 0.3],
+}
+
+def _random_specific_pos(posicion: str) -> str:
+    opts = SPECIFIC_POSITIONS.get(posicion, [posicion])
+    weights = SPECIFIC_WEIGHTS.get(posicion, [1])
+    return random.choices(opts, weights=weights, k=1)[0]
+
 def revalue_all_players(db: Session):
     """Re-calculate prices for all existing players using new pricing tiers.
     Note: this changes values of players already in fantasy teams, which may
@@ -66,6 +85,7 @@ def revalue_all_players(db: Session):
         age_mult = _age_factor(age)
         tier = _tier_mult()
         j.valor_inicial = max(3, min(60, round(base * age_mult * tier)))
+        j.posicion_especifica = j.posicion_especifica or _random_specific_pos(j.posicion)
     db.commit()
     logger.info(f"Revalued {len(players)} players with new pricing tiers")
 
@@ -118,6 +138,7 @@ def seed_players(db: Session):
             db_jugador = Jugador(
                 nombre=name,
                 posicion=pos,
+                posicion_especifica=_random_specific_pos(pos),
                 equipo_nacional=team_name,
                 fecha_nacimiento=dob,
                 valor_inicial=valor,

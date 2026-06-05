@@ -121,6 +121,7 @@ class Jugador(Base):
     id_jugador = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     posicion = Column(String, nullable=False)  # GK, DEF, MID, FWD
+    posicion_especifica = Column(String, nullable=True)  # CB, LB, RB, CM, CDM, CAM, LM, RM, LW, RW, ST
     equipo_nacional = Column(String, nullable=False)
     fecha_nacimiento = Column(DateTime, nullable=True)
     valor_inicial = Column(Integer, nullable=False)  # in millions

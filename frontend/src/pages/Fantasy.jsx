@@ -14,6 +14,21 @@ const POSITIONS_MAP = [
   { value: 'FWD', label: 'Delantero' },
 ]
 
+const SPECIFIC_POSITIONS_MAP = [
+  { value: '', label: 'Todas' },
+  { value: 'CB', label: 'Central' },
+  { value: 'LB', label: 'Lateral Izq.' },
+  { value: 'RB', label: 'Lateral Der.' },
+  { value: 'CM', label: 'Mediocentro' },
+  { value: 'CDM', label: 'Pivote' },
+  { value: 'CAM', label: 'Mediapunta' },
+  { value: 'LM', label: 'Interior Izq.' },
+  { value: 'RM', label: 'Interior Der.' },
+  { value: 'LW', label: 'Extremo Izq.' },
+  { value: 'RW', label: 'Extremo Der.' },
+  { value: 'ST', label: 'Delantero' },
+]
+
 const FORMATIONS = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1']
 
 export default function Fantasy() {
@@ -27,6 +42,7 @@ export default function Fantasy() {
   const [rankings, setRankings] = useState([])
   const [formation, setFormation] = useState('4-4-2')
   const [filtroPos, setFiltroPos] = useState('')
+  const [filtroPosEsp, setFiltroPosEsp] = useState('')
   const [filtroEquipo, setFiltroEquipo] = useState('')
   const [search, setSearch] = useState('')
   const [picking, setPicking] = useState(false)
@@ -37,6 +53,19 @@ export default function Fantasy() {
   const [fechas, setFechas] = useState([])
   const [simulating, setSimulating] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+  const [selectedSlot, setSelectedSlot] = useState(null)
+
+  const SLOT_SPECIFIC = {
+    "GK": "GK", "LB": "LB", "CB": "CB", "RB": "RB",
+    "LM": "LM", "CM": "CM", "CDM": "CDM", "CAM": "CAM", "RM": "RM",
+    "LW": "LW", "RW": "RW", "ST": "ST",
+  }
+
+  const SPECIFIC_LABELS = {
+    "GK": "ARQ", "CB": "CB", "LB": "LI", "RB": "LD",
+    "CM": "MC", "CDM": "PIV", "CAM": "MP", "LM": "MI", "RM": "MD",
+    "LW": "EI", "RW": "ED", "ST": "DC",
+  }
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 640)
@@ -60,13 +89,14 @@ export default function Fantasy() {
   const players = useMemo(() => {
     let filtered = allPlayers
     if (filtroPos) filtered = filtered.filter((p) => p.posicion === filtroPos)
+    if (filtroPosEsp) filtered = filtered.filter((p) => p.posicion_especifica === filtroPosEsp)
     if (filtroEquipo) filtered = filtered.filter((p) => p.equipo_nacional === filtroEquipo)
     if (search) {
       const q = search.toLowerCase()
       filtered = filtered.filter((p) => p.nombre.toLowerCase().includes(q))
     }
     return filtered
-  }, [allPlayers, filtroPos, filtroEquipo, search])
+  }, [allPlayers, filtroPos, filtroPosEsp, filtroEquipo, search])
 
   useEffect(() => {
     loadTeam()
@@ -234,7 +264,7 @@ export default function Fantasy() {
     }
   }
 
-  async function handlePick(player) {
+  async function handlePick(player, slotPos) {
     if (!team) return
     try {
       setPicking(true)
@@ -243,10 +273,11 @@ export default function Fantasy() {
         id_grupo: parseInt(groupId),
         fecha: team.fecha,
         id_jugador: player.id_jugador,
-        posicion_cancha: null,
+        posicion_cancha: slotPos || null,
       })
       setTeam(res.data)
       setBudget(res.data.presupuesto_restante)
+      setSelectedSlot(null)
     } catch (e) {
       setError(e.response?.data?.detail || 'Error al seleccionar jugador')
     } finally {
@@ -300,8 +331,14 @@ export default function Fantasy() {
   // Available players (not on my team, not taken by others in the group)
   const myPlayerIds = new Set((team?.jugadores || []).map((j) => j.id_jugador))
   const takenPlayerIds = new Set(team?.jugadores_no_disponibles || [])
-  const availablePlayers = players.filter((p) => !myPlayerIds.has(p.id_jugador) && !takenPlayerIds.has(p.id_jugador))
+  let availablePlayers = players.filter((p) => !myPlayerIds.has(p.id_jugador) && !takenPlayerIds.has(p.id_jugador))
   const takenPlayers = players.filter((p) => takenPlayerIds.has(p.id_jugador))
+
+  // Filter by specific position when a pitch slot is selected
+  const targetSpecific = selectedSlot ? SLOT_SPECIFIC[selectedSlot.id] : null
+  if (targetSpecific) {
+    availablePlayers = availablePlayers.filter((p) => p.posicion_especifica === targetSpecific)
+  }
 
   const tabs = [
     { id: 'draft', label: 'Armar', icon: Shield },
@@ -372,6 +409,10 @@ export default function Fantasy() {
                     className="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 flex-1">
                     {POSITIONS_MAP.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
+                  <select value={filtroPosEsp} onChange={(e) => setFiltroPosEsp(e.target.value)}
+                    className="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 flex-1">
+                    {SPECIFIC_POSITIONS_MAP.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
                   <select value={filtroEquipo} onChange={(e) => setFiltroEquipo(e.target.value)}
                     className="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 flex-[2] truncate">
                     <option value="">Todos los equipos</option>
@@ -397,7 +438,16 @@ export default function Fantasy() {
                 </div>
               )}
 
-              {/* Player list */}
+                {/* Player list */}
+              {selectedSlot && (
+                <div className="flex items-center gap-2 mb-2 bg-soccer-green/10 border border-soccer-green/20 rounded-xl px-3 py-2">
+                  <span className="text-[10px] font-bold text-soccer-green flex-1">
+                    Elegí un jugador para <strong>{selectedSlot.id}</strong>
+                  </span>
+                  <button onClick={() => setSelectedSlot(null)}
+                    className="text-[10px] text-slate-400 hover:text-slate-200 font-bold">X</button>
+                </div>
+              )}
               <div className="space-y-1 max-h-[400px] overflow-y-auto">
                 <div className="text-[10px] text-slate-500 font-semibold mb-1">
                   {availablePlayers.length} disponibles {takenPlayers.length > 0 ? `· ${takenPlayers.length} no disponibles` : ''}
@@ -407,10 +457,10 @@ export default function Fantasy() {
                     className={`flex items-center justify-between p-2 rounded-xl transition-all ${
                       team ? 'hover:bg-slate-700/50 cursor-pointer' : 'opacity-50'
                     }`}
-                    onClick={() => team && handlePick(p)}>
+                    onClick={() => team && handlePick(p, targetSpecific ? selectedSlot.id : null)}>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-slate-200 truncate">{p.nombre}</div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
                         <span>{p.equipo_nacional}</span>
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
                           p.posicion === 'GK' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -418,6 +468,12 @@ export default function Fantasy() {
                           p.posicion === 'MID' ? 'bg-purple-500/20 text-purple-400' :
                           'bg-red-500/20 text-red-400'
                         }`}>{p.posicion}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                          p.posicion_especifica === 'GK' ? 'bg-yellow-500/10 text-yellow-300' :
+                          p.posicion_especifica === 'CB' || p.posicion_especifica === 'LB' || p.posicion_especifica === 'RB' ? 'bg-blue-500/10 text-blue-300' :
+                          p.posicion_especifica === 'CM' || p.posicion_especifica === 'CDM' || p.posicion_especifica === 'CAM' || p.posicion_especifica === 'LM' || p.posicion_especifica === 'RM' ? 'bg-purple-500/10 text-purple-300' :
+                          'bg-red-500/10 text-red-300'
+                        }`}>{SPECIFIC_LABELS[p.posicion_especifica] || p.posicion_especifica}</span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -516,7 +572,15 @@ export default function Fantasy() {
                 </div>
 
                 {/* Pitch */}
-                <Pitch formation={formation} players={team.jugadores} compact={isMobile} />
+                <Pitch formation={formation} players={team.jugadores} compact={isMobile}
+                  selectedSlotId={selectedSlot?.id}
+                  onSlotClick={(slot) => {
+                    if (selectedSlot?.id === slot.id) {
+                      setSelectedSlot(null)
+                    } else {
+                      setSelectedSlot(slot)
+                    }
+                  }} />
 
                 {/* Current squad summary */}
                 <div className="glass-card rounded-2xl p-4 border border-slate-800 mt-4">
@@ -537,7 +601,7 @@ export default function Fantasy() {
                           j.posicion === 'DEF' ? 'bg-blue-500/20 text-blue-400' :
                           j.posicion === 'MID' ? 'bg-purple-500/20 text-purple-400' :
                           'bg-red-500/20 text-red-400'
-                        }`}>{j.posicion}</div>
+                        }`}>{SPECIFIC_LABELS[j.posicion_especifica] || j.posicion_especifica || j.posicion}</div>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold text-slate-200 truncate">{j.nombre}</div>
                           <div className="text-[10px] text-slate-500">${j.valor_inicial}M</div>
@@ -602,7 +666,7 @@ export default function Fantasy() {
                   {team.jugadores.map((j) => (
                     <div key={j.id} className="bg-slate-800/50 rounded-xl p-2">
                       <div className="text-xs font-bold text-slate-200 truncate">{j.nombre}</div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
                         <span>{j.equipo_nacional}</span>
                         <span className={`px-1 py-0.5 rounded text-[9px] font-bold ${
                           j.posicion === 'GK' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -610,6 +674,12 @@ export default function Fantasy() {
                           j.posicion === 'MID' ? 'bg-purple-500/20 text-purple-400' :
                           'bg-red-500/20 text-red-400'
                         }`}>{j.posicion}</span>
+                        <span className={`px-1 py-0.5 rounded text-[9px] font-bold ${
+                          j.posicion_especifica === 'GK' ? 'bg-yellow-500/10 text-yellow-300' :
+                          j.posicion_especifica === 'CB' || j.posicion_especifica === 'LB' || j.posicion_especifica === 'RB' ? 'bg-blue-500/10 text-blue-300' :
+                          j.posicion_especifica === 'CM' || j.posicion_especifica === 'CDM' || j.posicion_especifica === 'CAM' || j.posicion_especifica === 'LM' || j.posicion_especifica === 'RM' ? 'bg-purple-500/10 text-purple-300' :
+                          'bg-red-500/10 text-red-300'
+                        }`}>{SPECIFIC_LABELS[j.posicion_especifica] || j.posicion_especifica}</span>
                       </div>
                       <div className="text-[10px] text-slate-500">${j.valor_inicial}M | {j.posicion_cancha || j.posicion}</div>
                     </div>

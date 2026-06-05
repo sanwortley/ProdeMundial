@@ -15,6 +15,7 @@ class JugadorResponse(BaseModel):
     id_jugador: int
     nombre: str
     posicion: str
+    posicion_especifica: Optional[str] = None
     equipo_nacional: str
     valor_inicial: int
     puntos_totales: int
@@ -42,7 +43,8 @@ class JugadorEquipoResponse(BaseModel):
     id_jugador: int
     nombre: str
     posicion: str
-    posicion_cancha: Optional[str]
+    posicion_especifica: Optional[str] = None
+    posicion_cancha: Optional[str] = None
     orden: int
     equipo_nacional: str
     valor_inicial: int
@@ -201,6 +203,7 @@ def _load_team_response(db: Session, team: EquipoFecha):
             id_jugador=j.id_jugador,
             nombre=j.nombre,
             posicion=j.posicion,
+            posicion_especifica=j.posicion_especifica,
             posicion_cancha=je.posicion_cancha,
             orden=je.orden,
             equipo_nacional=j.equipo_nacional,
@@ -350,6 +353,16 @@ def pick_player(
             for je, _ in existing_picks:
                 taken_positions.add(je.posicion_cancha or "")
             if slot not in taken_positions or req.posicion_cancha is None:
+                slot_idx = i
+                break
+
+    if slot_idx is None and req.posicion_cancha is None:
+        # Prefer slot matching the player's specific position
+        for i, slot in enumerate(formation_slots):
+            taken_positions = set()
+            for je, _ in existing_picks:
+                taken_positions.add(je.posicion_cancha or "")
+            if slot not in taken_positions and slot == jugador.posicion_especifica:
                 slot_idx = i
                 break
 
