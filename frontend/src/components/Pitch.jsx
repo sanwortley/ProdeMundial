@@ -1,21 +1,6 @@
 import { Shield, ShieldCheck } from 'lucide-react'
 
-// Y-coordinates use viewBox 0-136. Lines spread from ~118 (GK) to ~32 (ST).
-// Defenders: ~98-102 | Midfield: ~74-82 | Att mids: ~54-60 | Forwards: ~32-44
 const FORMATION_POSITIONS = {
-  '4-2-3-1': [
-    { id: 'GK',  label: 'GK',  x: 50, y: 126 },
-    { id: 'LB',  label: 'LB',  x: 12, y: 100 },
-    { id: 'CB',  label: 'CB',  x: 33, y: 102 },
-    { id: 'CB',  label: 'CB',  x: 67, y: 102 },
-    { id: 'RB',  label: 'RB',  x: 88, y: 100 },
-    { id: 'CDM', label: 'CDM', x: 30, y: 78 },
-    { id: 'CDM', label: 'CDM', x: 70, y: 78 },
-    { id: 'LW',  label: 'LW',  x: 12, y: 56 },
-    { id: 'CAM', label: 'CAM', x: 50, y: 54 },
-    { id: 'RW',  label: 'RW',  x: 88, y: 56 },
-    { id: 'ST',  label: 'ST',  x: 50, y: 34 },
-  ],
   '4-3-3': [
     { id: 'GK',  label: 'GK',  x: 50, y: 126 },
     { id: 'LB',  label: 'LB',  x: 12, y: 100 },
@@ -29,36 +14,10 @@ const FORMATION_POSITIONS = {
     { id: 'ST',  label: 'ST',  x: 50, y: 34 },
     { id: 'RW',  label: 'RW',  x: 88, y: 48 },
   ],
-  '4-4-2': [
-    { id: 'GK',  label: 'GK',  x: 50, y: 126 },
-    { id: 'LB',  label: 'LB',  x: 12, y: 100 },
-    { id: 'CB',  label: 'CB',  x: 33, y: 102 },
-    { id: 'CB',  label: 'CB',  x: 67, y: 102 },
-    { id: 'RB',  label: 'RB',  x: 88, y: 100 },
-    { id: 'LM',  label: 'LM',  x: 8,  y: 76 },
-    { id: 'CM',  label: 'CM',  x: 33, y: 74 },
-    { id: 'CM',  label: 'CM',  x: 67, y: 74 },
-    { id: 'RM',  label: 'RM',  x: 92, y: 76 },
-    { id: 'ST',  label: 'ST',  x: 35, y: 36 },
-    { id: 'ST',  label: 'ST',  x: 65, y: 36 },
-  ],
-  '3-5-2': [
-    { id: 'GK',  label: 'GK',  x: 50, y: 126 },
-    { id: 'CB',  label: 'CB',  x: 22, y: 102 },
-    { id: 'CB',  label: 'CB',  x: 50, y: 104 },
-    { id: 'CB',  label: 'CB',  x: 78, y: 102 },
-    { id: 'LM',  label: 'LM',  x: 6,  y: 78 },
-    { id: 'CM',  label: 'CM',  x: 25, y: 74 },
-    { id: 'CM',  label: 'CM',  x: 50, y: 70 },
-    { id: 'CM',  label: 'CM',  x: 75, y: 74 },
-    { id: 'RM',  label: 'RM',  x: 94, y: 78 },
-    { id: 'ST',  label: 'ST',  x: 35, y: 36 },
-    { id: 'ST',  label: 'ST',  x: 65, y: 36 },
-  ],
 }
 
-export default function Pitch({ formation = '4-4-2', players = [], onSlotClick, compact = false, selectedSlotId }) {
-  const positions = FORMATION_POSITIONS[formation] || FORMATION_POSITIONS['4-4-2']
+export default function Pitch({ formation = '4-3-3', players = [], onSlotClick, compact = false, selectedSlotId }) {
+  const positions = FORMATION_POSITIONS[formation] || FORMATION_POSITIONS['4-3-3']
 
   // Match players to slot positions by orden (slot index), not by posicion_cancha
   // This correctly handles duplicate IDs like 2 CBs or 2 STs

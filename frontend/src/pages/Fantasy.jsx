@@ -29,7 +29,7 @@ const SPECIFIC_POSITIONS_MAP = [
   { value: 'ST', label: 'Delantero' },
 ]
 
-const FORMATIONS = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1']
+const FORMATIONS = ['4-3-3']
 
 export default function Fantasy() {
   const { groupId } = useParams()
@@ -40,7 +40,7 @@ export default function Fantasy() {
   const [allPlayers, setAllPlayers] = useState([])
   const [team, setTeam] = useState(null)
   const [rankings, setRankings] = useState([])
-  const [formation, setFormation] = useState('4-4-2')
+  const [formation, setFormation] = useState('4-3-3')
   const [filtroPos, setFiltroPos] = useState('')
   const [filtroPosEsp, setFiltroPosEsp] = useState('')
   const [filtroEquipo, setFiltroEquipo] = useState('')
@@ -518,15 +518,7 @@ export default function Fantasy() {
               <div className="glass-card rounded-2xl p-6 border border-slate-800 text-center">
                 <Shield className="w-12 h-12 text-soccer-green mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-slate-100 mb-2">Armá tu equipo para esta fecha</h3>
-                <p className="text-sm text-slate-400 mb-4">Seleccioná una formación y empezá a armar tu equipo ideal.</p>
-                <div className="flex gap-2 justify-center mb-4 flex-wrap">
-                  {FORMATIONS.map((f) => (
-                    <button key={f} onClick={() => setFormation(f)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                        formation === f ? 'bg-soccer-green text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                      }`}>{f}</button>
-                  ))}
-                </div>
+                <p className="text-sm text-slate-400 mb-4">Formación <strong className="text-slate-200">4-3-3</strong>. Empezá a armar tu equipo ideal.</p>
                 <button onClick={handleInitTeam}
                   className="bg-gradient-green text-white font-bold px-6 py-2.5 rounded-xl hover:opacity-90 transition-all">
                   Crear equipo
@@ -555,16 +547,6 @@ export default function Fantasy() {
                       </span>
                     )}
                   </div>
-                </div>
-
-                {/* Formation selector */}
-                <div className="flex gap-2 mb-3 flex-wrap">
-                  {FORMATIONS.map((f) => (
-                    <button key={f} onClick={() => handleChangeFormation(f)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        formation === f ? 'bg-soccer-green text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
-                      }`}>{f}</button>
-                  ))}
                 </div>
 
                 {/* Pitch */}

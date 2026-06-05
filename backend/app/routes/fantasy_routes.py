@@ -64,7 +64,7 @@ class PickPlayerRequest(BaseModel):
 
 
 class InitTeamRequest(BaseModel):
-    formacion: str = "4-4-2"
+    formacion: str = "4-3-3"
 
 
 class FantasyRankingEntry(BaseModel):
@@ -74,21 +74,11 @@ class FantasyRankingEntry(BaseModel):
 
 
 FORMATIONS = {
-    "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
-    "3-5-2": ["GK", "CB", "CB", "CB", "LM", "CM", "CM", "CM", "RM", "ST", "ST"],
-    "4-2-3-1": ["GK", "LB", "CB", "CB", "RB", "CDM", "CDM", "LW", "CAM", "RW", "ST"],
-    "5-3-2": ["GK", "LB", "CB", "CB", "CB", "RB", "CM", "CM", "CM", "ST", "ST"],
-    "3-4-3": ["GK", "CB", "CB", "CB", "LM", "CM", "CM", "RM", "LW", "ST", "RW"],
 }
 
 POSITION_COUNTS = {
-    "4-4-2": {"GK": 1, "DEF": 4, "MID": 4, "FWD": 2},
     "4-3-3": {"GK": 1, "DEF": 4, "MID": 3, "FWD": 3},
-    "3-5-2": {"GK": 1, "DEF": 3, "MID": 5, "FWD": 2},
-    "4-2-3-1": {"GK": 1, "DEF": 4, "MID": 4, "FWD": 1},
-    "5-3-2": {"GK": 1, "DEF": 5, "MID": 3, "FWD": 2},
-    "3-4-3": {"GK": 1, "DEF": 3, "MID": 4, "FWD": 3},
 }
 
 POS_TO_ROLE = {
