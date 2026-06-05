@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-soccer-dark text-slate-100 antialiased selection:bg-soccer-green selection:text-soccer-dark;
+  }
+}
+
+/* Glassmorphism utility card styles */
+.glass-card {
+  background: rgba(22, 28, 44, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card-hover {
+  @apply transition-all duration-300 hover:border-soccer-green/30 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)];
+}
+
+/* Premium gradient backgrounds */
+.bg-gradient-pitch {
+  background: radial-gradient(circle at top, rgba(16, 185, 129, 0.15) 0%, rgba(11, 15, 25, 0.4) 70%, #0b0f19 100%);
+}
+
+.bg-gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Custom Scrollbar for list screens */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+
+/* Pulse animation for live games or pending predictions */
+@keyframes soccerPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: .8;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: soccerPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
