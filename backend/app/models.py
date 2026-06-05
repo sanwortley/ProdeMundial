@@ -11,6 +11,7 @@ class Usuario(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
+    session_token = Column(String, nullable=True)
     fecha_registro = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships

@@ -31,6 +31,15 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: add session_token column to usuarios if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE usuarios ADD COLUMN session_token VARCHAR"))
+        conn.commit()
+        logger.info("Added session_token column to usuarios table (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Auto-promote first registered user to admin (if any user exists but none is admin)
 db = SessionLocal()
 try:

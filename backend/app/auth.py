@@ -1,6 +1,7 @@
 import bcrypt
 import logging
 import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt, JWTError
@@ -60,12 +61,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         id_usuario: int = payload.get("id_usuario")
-        if email is None or id_usuario is None:
+        session_token: str = payload.get("session_token")
+        if email is None or id_usuario is None or session_token is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     
     user = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
-    if user is None:
+    if user is None or user.session_token != session_token:
         raise credentials_exception
     return user

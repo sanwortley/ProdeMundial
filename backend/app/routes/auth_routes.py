@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -69,9 +71,17 @@ async def login(request: Request, login_in: LoginRequest, db: Session = Depends(
             detail="Correo o contraseña incorrectos."
         )
     
-    # Create JWT token
+    # Generate new session token (invalidates any other session for this user)
+    user.session_token = secrets.token_urlsafe(32)
+    db.commit()
+    
+    # Create JWT token with session_token
     access_token = create_access_token(
-        data={"sub": user.email, "id_usuario": user.id_usuario}
+        data={
+            "sub": user.email,
+            "id_usuario": user.id_usuario,
+            "session_token": user.session_token,
+        }
     )
     
     return {
