@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -7,7 +8,11 @@ from dotenv import load_dotenv
 # Load env variables from parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./prode.db")
+# Resolve to an absolute path so the DB always ends up at backend/prode.db
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+if not DATABASE_URL:
+    DATABASE_URL = f"sqlite:///{BACKEND_DIR / 'prode.db'}"
 
 # Fallback for old postgres:// uri format used by some platforms
 if DATABASE_URL.startswith("postgres://"):
