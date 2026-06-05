@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "Installing backend dependencies..."
 cd "$ROOT_DIR/backend"
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 echo "Installing Node.js..."
 apt-get update -qq && apt-get install -y -qq nodejs npm
