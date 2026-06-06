@@ -158,10 +158,17 @@ async def _run_game(duelo_id: int):
             pateador = _get_random_shooter(db, duelo, atacante_id)
             arquero_id = duelo.id_rival if atacante_id == duelo.id_retador else duelo.id_retador
 
+            retador_jugs = _get_team_player_names(db, duelo, duelo.id_retador)
+            rival_jugs = _get_team_player_names(db, duelo, duelo.id_rival)
+
             anim_msg = {
                 "type": "animation_phase",
                 "ronda": ronda_num,
                 "duracion": ANIMATION_DURATION,
+                "pateador_nombre": pateador["nombre"] if pateador else "?",
+                "pateador_posicion": pateador["posicion"] if pateador else "?",
+                "retador_jugadores": retador_jugs,
+                "rival_jugadores": rival_jugs,
             }
             game_states[duelo_id]["animation_phase"] = anim_msg
             game_states[duelo_id]["ronda_actual"] = ronda_num
@@ -286,6 +293,24 @@ def _pick_random_attacker(duelo: Duelo, ronda_num: int) -> int:
     if ronda_num == 1:
         return random.choice([duelo.id_retador, duelo.id_rival])
     return duelo.id_rival if duelo.turno_atacante_id == duelo.id_retador else duelo.id_retador
+
+
+def _get_team_player_names(db: Session, duelo: Duelo, user_id: int) -> list[str]:
+    ef = db.query(EquipoFecha).filter(
+        EquipoFecha.id_usuario == user_id,
+        EquipoFecha.id_grupo == duelo.id_grupo,
+    ).first()
+    if not ef:
+        return []
+    picks = db.query(JugadorEquipoFecha).filter(
+        JugadorEquipoFecha.id_equipo == ef.id_equipo
+    ).all()
+    names = []
+    for p in picks:
+        j = db.query(Jugador).filter(Jugador.id_jugador == p.id_jugador).first()
+        if j and j.posicion != "GK":
+            names.append(j.nombre)
+    return names
 
 
 def _get_random_shooter(db: Session, duelo: Duelo, atacante_id: int) -> dict | None:

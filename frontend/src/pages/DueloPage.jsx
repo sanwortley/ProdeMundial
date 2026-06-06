@@ -122,17 +122,15 @@ export default function DueloPage() {
       <div className="flex-1 flex items-center justify-center">
         <DueloCanvas
           phase={gameState.phase}
-          duracion={gameState.duracion}
           ronda={gameState.ronda}
-          atacanteId={gameState.atacanteId}
           isAtacante={gameState.isAtacante}
           pateadorNombre={gameState.pateadorNombre}
           pateadorPosicion={gameState.pateadorPosicion}
-          pateadorValor={gameState.pateadorValor}
           resultado={gameState.resultado}
           onShoot={shoot}
           onDefend={defend}
-          myUserId={userId}
+          retadorJugadores={gameState.retadorJugadores}
+          rivalJugadores={gameState.rivalJugadores}
         />
       </div>
 

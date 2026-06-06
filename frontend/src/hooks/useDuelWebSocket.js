@@ -8,7 +8,7 @@ const WS_URL = API_URL.replace(/^http/, 'ws')
 export default function useDuelWebSocket(dueloId) {
   const [connected, setConnected] = useState(false)
   const [gameState, setGameState] = useState({
-    phase: 'connecting', // connecting | waiting | animation | penalty | result | match_end
+    phase: 'connecting',
     ronda: 1,
     atacanteId: null,
     isAtacante: false,
@@ -25,6 +25,8 @@ export default function useDuelWebSocket(dueloId) {
     ganadorId: null,
     duracion: 10,
     resultado: null,
+    retadorJugadores: [],
+    rivalJugadores: [],
   })
   const wsRef = useRef(null)
   const onMessageRef = useRef(null)
@@ -115,6 +117,10 @@ function handleMessage(data, setState, sendMessage) {
         phase: 'animation',
         ronda: data.ronda,
         duracion: data.duracion,
+        pateadorNombre: data.pateador_nombre,
+        pateadorPosicion: data.pateador_posicion,
+        retadorJugadores: data.retador_jugadores || [],
+        rivalJugadores: data.rival_jugadores || [],
         resultado: null,
       }))
       break
