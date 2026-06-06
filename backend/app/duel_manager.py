@@ -54,19 +54,20 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
     active_duels[duelo_id][user_id] = websocket
     message_queues[duelo_id][user_id] = asyncio.Queue()
 
-    # If duelo is pending and both players connected, start game
+    # If both players connected, start game
     db = SessionLocal()
     try:
         duelo = db.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
-        if duelo and duelo.estado == "pending":
+        if duelo and duelo.estado in ("pending", "playing"):
             other_id = duelo.id_rival if user_id == duelo.id_retador else duelo.id_retador
             if other_id in active_duels.get(duelo_id, {}):
-                duelo.estado = "playing"
-                db.commit()
+                if duelo.estado == "pending":
+                    duelo.estado = "playing"
+                    db.commit()
                 if duelo_id not in game_tasks:
                     task = asyncio.create_task(_run_game(duelo_id))
                     game_tasks[duelo_id] = task
-        elif duelo and duelo.estado == "playing" and duelo_id in game_states:
+        if duelo and duelo.estado == "playing" and duelo_id in game_states:
             # Reconnect: send current game state
             state = game_states[duelo_id]
             if "match_start" in state:
