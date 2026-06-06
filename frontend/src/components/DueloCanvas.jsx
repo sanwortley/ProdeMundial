@@ -8,9 +8,9 @@ const GOAL_ZONES = [
   { id: 5, label: 'ID',  x: 0.75, y: 0.70 },
 ]
 
-function randItem(arr) {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
+const randItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
+const lerp = (a, b, t) => a + (b - a) * Math.min(Math.max(t, 0), 1)
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi)
 
 function getScript(ronda, pateadorNombre, pateadorPosicion, retadorJugadores, rivalJugadores) {
   const atk = retadorJugadores.length ? retadorJugadores : [pateadorNombre || 'El delantero']
@@ -49,7 +49,7 @@ function getScript(ronda, pateadorNombre, pateadorPosicion, retadorJugadores, ri
       `💥 ${shootName} (${pateadorPosicion}) gana de arriba!`,
     ],
   ]
-  return lines[(ronda - 1) % lines.length].map(t => ({ text: t, dur: 2.5 }))
+  return lines[(ronda - 1) % lines.length].map((t) => ({ text: t, dur: 2.5 }))
 }
 
 export default function DueloCanvas({
@@ -92,11 +92,8 @@ export default function DueloCanvas({
       setCountdown((c) => {
         if (c <= 1) {
           clearInterval(countdownRef.current)
-          if (isAtacante && !selectedGoal) {
-            onShoot?.(0)
-          } else if (!isAtacante && !selectedGoal) {
-            onDefend?.(0)
-          }
+          if (isAtacante && !selectedGoal) onShoot?.(0)
+          else if (!isAtacante && !selectedGoal) onDefend?.(0)
           return 0
         }
         return c - 1
@@ -148,7 +145,7 @@ export default function DueloCanvas({
     const gkLeft = 60 / 400
     const gkRight = (400 - 60) / 400
     const gkTop = 20 / 300
-    const gkBottom = (20 + 120) / 300
+    const gkBottom = (20 + 140) / 300
     for (const zone of GOAL_ZONES) {
       const zx = gkLeft + zone.x * (gkRight - gkLeft)
       const zy = gkTop + zone.y * (gkBottom - gkTop)
@@ -194,8 +191,6 @@ export default function DueloCanvas({
         </div>
       )}
 
-
-
       {pateadorNombre && (phase === 'penalty' || phase === 'animation') && (
         <div className="absolute -bottom-10 left-0 right-0 text-center">
           <span className="text-[11px] text-slate-400 font-semibold">
@@ -215,6 +210,346 @@ export default function DueloCanvas({
   )
 }
 
+// ---------------------------------------------------------------------------
+// PITCH
+// ---------------------------------------------------------------------------
+function drawPitch(ctx, w, h) {
+  const m = 10
+  const cx = w / 2
+  const cy = h / 2
+
+  // grass fill
+  ctx.fillStyle = '#1a6b30'
+  ctx.fillRect(0, 0, w, h)
+
+  // grass stripes
+  ctx.fillStyle = '#1a7335'
+  for (let y = m; y < h - m; y += 16) {
+    ctx.fillRect(m, y, w - m * 2, 8)
+  }
+
+  // outer boundary
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(m, m, w - m * 2, h - m * 2)
+
+  // center line
+  ctx.beginPath()
+  ctx.moveTo(m, cy)
+  ctx.lineTo(w - m, cy)
+  ctx.stroke()
+  ctx.lineWidth = 1
+
+  // center circle
+  ctx.beginPath()
+  ctx.arc(cx, cy, 28, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // center spot
+  ctx.beginPath()
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'
+  ctx.fill()
+
+  // top penalty area
+  const paX = cx - 80, paY = m, paW = 160, paH = 50
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+  ctx.lineWidth = 1
+  ctx.strokeRect(paX, paY, paW, paH)
+
+  // bottom penalty area
+  ctx.strokeRect(paX, h - m - paH, paW, paH)
+
+  // top goal area (6-yard)
+  const gaX = cx - 35, gaY = m, gaW = 70, gaH = 18
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+  ctx.lineWidth = 1
+  ctx.strokeRect(gaX, gaY, gaW, gaH)
+
+  // bottom goal area
+  ctx.strokeRect(gaX, h - m - gaH, gaW, gaH)
+
+  // penalty spots
+  ctx.beginPath()
+  ctx.arc(cx, m + 36, 2.5, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(cx, h - m - 36, 2.5, 0, Math.PI * 2)
+  ctx.fill()
+
+  // penalty arcs
+  ctx.beginPath()
+  ctx.arc(cx, m + 36, 16, -Math.PI * 0.4, Math.PI * 0.4)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(cx, h - m - 36, 16, Math.PI * 0.6, Math.PI * 1.4)
+  ctx.stroke()
+
+  // corner arcs
+  const cr = 7
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.arc(m, m, cr, 0, Math.PI / 2)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(w - m, m, cr, Math.PI / 2, Math.PI)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(m, h - m, cr, Math.PI * 1.5, Math.PI * 2)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(w - m, h - m, cr, Math.PI, Math.PI * 1.5)
+  ctx.stroke()
+}
+
+// ---------------------------------------------------------------------------
+// PLAYER FIGURE
+// ---------------------------------------------------------------------------
+function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
+  ctx.save()
+  const hScale = isHighlight ? 1.3 : 1
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.beginPath()
+  ctx.ellipse(x, y + 10 * hScale, 5 * hScale, 2 * hScale, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // legs
+  ctx.strokeStyle = '#1a1a2e'
+  ctx.lineWidth = 1.5 * hScale
+  ctx.beginPath()
+  ctx.moveTo(x - 2 * hScale, y + 3 * hScale)
+  ctx.lineTo(x - 2.5 * hScale, y + 9 * hScale)
+  ctx.moveTo(x + 2 * hScale, y + 3 * hScale)
+  ctx.lineTo(x + 2.5 * hScale, y + 9 * hScale)
+  ctx.stroke()
+
+  // body (jersey)
+  ctx.fillStyle = jerseyColor
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+  ctx.lineWidth = 0.5
+  ctx.beginPath()
+  ctx.ellipse(x, y, 5 * hScale, 6 * hScale, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+
+  // jersey detail (sleeves)
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'
+  ctx.beginPath()
+  ctx.ellipse(x - 4 * hScale, y - 1 * hScale, 2.5 * hScale, 4 * hScale, -0.3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(x + 4 * hScale, y - 1 * hScale, 2.5 * hScale, 4 * hScale, 0.3, 0, Math.PI * 2)
+  ctx.fill()
+
+  // shorts
+  ctx.fillStyle = '#1a1a2e'
+  ctx.beginPath()
+  ctx.rect(x - 3.5 * hScale, y + 4 * hScale, 7 * hScale, 3 * hScale)
+  ctx.fill()
+
+  // head
+  ctx.beginPath()
+  ctx.arc(x, y - 7 * hScale, 3.5 * hScale, 0, Math.PI * 2)
+  ctx.fillStyle = '#f5d6a8'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'
+  ctx.lineWidth = 0.5
+  ctx.stroke()
+
+  // hair
+  ctx.fillStyle = isHighlight ? '#eab308' : '#2d1b0e'
+  ctx.beginPath()
+  ctx.arc(x, y - 8.5 * hScale, 3 * hScale, Math.PI, 0)
+  ctx.fill()
+
+  // label (number or initial)
+  if (shirtLabel) {
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'
+    ctx.font = `${Math.round(5 * hScale)}px sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(shirtLabel, x, y + 0.5)
+  }
+
+  ctx.restore()
+}
+
+// ---------------------------------------------------------------------------
+// PLAYER POSITIONS (keyframes)
+// ---------------------------------------------------------------------------
+function getPlayerPositions(w, h, t, totalDur) {
+  const prog = clamp(t / totalDur, 0, 1)
+  const cx = w / 2
+  const cy = h / 2
+
+  // attacking team: top → bottom
+  // defending team: bottom → top
+
+  const atkDef = [
+    { x: [cx - 40, cx - 35, cx - 30, cx - 30], y: [cy - 100, cy - 95, cy - 90, cy - 85] },
+    { x: [cx + 40, cx + 35, cx + 30, cx + 30], y: [cy - 100, cy - 95, cy - 90, cy - 85] },
+    { x: [cx - 70, cx - 60, cx - 50, cx - 40], y: [cy - 80, cy - 80, cy - 75, cy - 70] },
+    { x: [cx + 70, cx + 60, cx + 50, cx + 40], y: [cy - 80, cy - 80, cy - 75, cy - 70] },
+  ]
+  const atkMid = [
+    { x: [cx - 20, cx - 25, cx - 30, cx - 20], y: [cy - 50, cy - 40, cy - 30, cy - 20] },
+    { x: [cx, cx, cx, cx], y: [cy - 40, cy - 30, cy - 20, cy - 10] },
+    { x: [cx + 20, cx + 25, cx + 30, cx + 20], y: [cy - 50, cy - 40, cy - 30, cy - 20] },
+  ]
+  const atkFwd = [
+    { x: [cx - 30, cx - 25, cx - 15, cx - 10], y: [cy + 10, cy + 25, cy + 40, cy + 50] },
+    { x: [cx, cx - 5, cx - 5, cx], y: [cy + 10, cy + 30, cy + 45, cy + 55] },
+    { x: [cx + 30, cx + 25, cx + 15, cx + 10], y: [cy + 10, cy + 25, cy + 40, cy + 50] },
+  ]
+
+  const defDef = [
+    { x: [cx - 35, cx - 30, cx - 25, cx - 20], y: [cy + 100, cy + 95, cy + 90, cy + 85] },
+    { x: [cx + 35, cx + 30, cx + 25, cx + 20], y: [cy + 100, cy + 95, cy + 90, cy + 85] },
+    { x: [cx - 60, cx - 50, cx - 40, cx - 30], y: [cy + 80, cy + 75, cy + 70, cy + 65] },
+    { x: [cx + 60, cx + 50, cx + 40, cx + 30], y: [cy + 80, cy + 75, cy + 70, cy + 65] },
+  ]
+  const defMid = [
+    { x: [cx - 15, cx - 10, cx - 5, cx], y: [cy + 50, cy + 40, cy + 30, cy + 20] },
+    { x: [cx, cx + 5, cx + 10, cx + 10], y: [cy + 45, cy + 35, cy + 25, cy + 15] },
+    { x: [cx + 15, cx + 10, cx + 5, cx], y: [cy + 50, cy + 40, cy + 30, cy + 20] },
+  ]
+  const defFwd = [
+    { x: [cx - 20, cx - 15, cx - 10, cx - 5], y: [cy - 10, cy - 20, cy - 30, cy - 35] },
+    { x: [cx + 20, cx + 15, cx + 10, cx + 5], y: [cy - 10, cy - 20, cy - 30, cy - 35] },
+  ]
+
+  function interp(kf) {
+    const idx = prog < 0.33 ? 0 : prog < 0.66 ? 1 : 2
+    const frac = prog < 0.33 ? prog / 0.33 : prog < 0.66 ? (prog - 0.33) / 0.33 : (prog - 0.66) / 0.34
+    const xi = lerp(kf.x[idx], kf.x[idx + 1], frac)
+    const yi = lerp(kf.y[idx], kf.y[idx + 1], frac)
+    return { x: xi, y: yi }
+  }
+
+  const players = []
+
+  for (const kf of atkDef) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
+  for (const kf of atkMid) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
+  for (const kf of atkFwd) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
+
+  for (const kf of defDef) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
+  for (const kf of defMid) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
+  for (const kf of defFwd) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
+
+  return players
+}
+
+// ---------------------------------------------------------------------------
+// BALL POSITION
+// ---------------------------------------------------------------------------
+function getBallPos(t, totalDur, w, h) {
+  const prog = clamp(t / totalDur, 0, 1)
+  const cx = w / 2
+  const cy = h / 2
+
+  // ball arcs from midfield towards the penalty area
+  const startX = cx, startY = cy - 30
+  const midX = cx - 30 + Math.sin(t * 2.5) * 15, midY = cy + 5
+  const crossX = cx + 20 + Math.sin(t * 3) * 10, crossY = cy + 35
+  const endX = cx + Math.sin(t * 4) * 8, endY = cy + 58
+
+  let bx, by
+  if (prog < 0.3) {
+    const p = prog / 0.3
+    bx = lerp(startX, midX, p)
+    by = lerp(startY, midY, p) + Math.sin(t * 3) * 6
+  } else if (prog < 0.6) {
+    const p = (prog - 0.3) / 0.3
+    bx = lerp(midX, crossX, p) + Math.sin(t * 2) * 8
+    by = lerp(midY, crossY, p)
+  } else {
+    const p = (prog - 0.6) / 0.4
+    bx = lerp(crossX, endX, p)
+    by = lerp(crossY, endY, p) - Math.sin(t * 5) * 3
+  }
+
+  return { x: bx, y: by }
+}
+
+// ---------------------------------------------------------------------------
+// NARRATION
+// ---------------------------------------------------------------------------
+function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLineRef) {
+  const t = (Date.now() - scriptStartRef.current) / 1000
+  const script = scriptRef.current
+  if (!script) return
+
+  ctx.fillStyle = '#0e4d22'
+  ctx.fillRect(0, 0, w, h)
+  drawPitch(ctx, w, h)
+
+  const totalDur = script.reduce((s, l) => s + l.dur, 0)
+
+  const players = getPlayerPositions(w, h, t, totalDur)
+
+  let elapsed = 0
+  let lineIdx = 0
+  for (let i = 0; i < script.length; i++) {
+    if (t >= elapsed && t < elapsed + script[i].dur) { lineIdx = i; break }
+    elapsed += script[i].dur
+    lineIdx = i + 1
+  }
+  lineIdx = Math.min(lineIdx, script.length - 1)
+  scriptLineRef.current = lineIdx
+
+  for (const p of players) {
+    if (!p) continue
+    drawPlayer(ctx, p.x, p.y, p.color, false)
+  }
+
+  const ball = getBallPos(t, totalDur, w, h)
+
+  // ball
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.4)'
+  ctx.shadowBlur = 4
+  ctx.beginPath()
+  ctx.arc(ball.x, ball.y, 4, 0, Math.PI * 2)
+  ctx.fillStyle = '#ffffff'
+  ctx.fill()
+  ctx.strokeStyle = '#888'
+  ctx.lineWidth = 0.5
+  ctx.stroke()
+
+  // ball pentagons
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + t
+    ctx.beginPath()
+    ctx.arc(ball.x + Math.cos(a) * 1.5, ball.y + Math.sin(a) * 1.5, 1, 0, Math.PI * 2)
+    ctx.fillStyle = '#222'
+    ctx.fill()
+  }
+  ctx.restore()
+
+  // text narration on canvas
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'
+  ctx.shadowBlur = 10
+  ctx.fillStyle = '#10b981'
+  ctx.font = 'bold 14px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  const text = script[lineIdx]?.text || ''
+  ctx.fillText(text, w / 2, h - 10)
+  ctx.restore()
+
+  animRef.current = requestAnimationFrame(() => {
+    drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLineRef)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// WAITING
+// ---------------------------------------------------------------------------
 function drawWaiting(ctx, w, h) {
   ctx.fillStyle = '#1a5730'
   ctx.fillRect(0, 0, w, h)
@@ -224,165 +559,9 @@ function drawWaiting(ctx, w, h) {
   ctx.fillText('Esperando...', w / 2, h / 2)
 }
 
-function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLineRef) {
-  const t = (Date.now() - scriptStartRef.current) / 1000
-  const script = scriptRef.current
-
-  if (!script) return
-
-  ctx.fillStyle = '#1a5730'
-  ctx.fillRect(0, 0, w, h)
-
-  drawPitch(ctx, w, h)
-
-  const totalDur = script.reduce((s, l) => s + l.dur, 0)
-
-  const homePlayers = generateNarrationPlayers(w, h, true, t, totalDur)
-  const awayPlayers = generateNarrationPlayers(w, h, false, t, totalDur)
-
-  for (const p of homePlayers) {
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2)
-    ctx.fillStyle = '#3b82f6'
-    ctx.fill()
-    ctx.strokeStyle = '#60a5fa'
-    ctx.lineWidth = 1
-    ctx.stroke()
-  }
-  for (const p of awayPlayers) {
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2)
-    ctx.fillStyle = '#ef4444'
-    ctx.fill()
-    ctx.strokeStyle = '#f87171'
-    ctx.lineWidth = 1
-    ctx.stroke()
-  }
-
-  let elapsed = 0
-  let lineIdx = 0
-  for (let i = 0; i < script.length; i++) {
-    if (t >= elapsed && t < elapsed + script[i].dur) {
-      lineIdx = i
-      break
-    }
-    elapsed += script[i].dur
-    lineIdx = i + 1
-  }
-  if (lineIdx >= script.length) lineIdx = script.length - 1
-
-  const ballX = getBallNarrationX(t, totalDur, w)
-  const ballY = getBallNarrationY(t, totalDur, h)
-
-  ctx.beginPath()
-  ctx.arc(ballX, ballY, 6, 0, Math.PI * 2)
-  ctx.fillStyle = '#ffffff'
-  ctx.fill()
-  ctx.strokeStyle = '#000000'
-  ctx.lineWidth = 1
-  ctx.stroke()
-
-  const currentLine = Math.min(lineIdx, script.length - 1)
-  scriptLineRef.current = currentLine
-
-  ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.8)'
-  ctx.shadowBlur = 8
-  ctx.fillStyle = '#10b981'
-  ctx.font = 'bold 13px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  const text = script[currentLine]?.text || ''
-  ctx.fillText(text, w / 2, h - 8)
-  ctx.restore()
-
-  animRef.current = requestAnimationFrame(() => {
-    drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLineRef)
-  })
-}
-
-function drawPitch(ctx, w, h) {
-  ctx.strokeStyle = '#ffffff30'
-  ctx.lineWidth = 1
-  ctx.strokeRect(10, 10, w - 20, h - 20)
-  ctx.beginPath()
-  ctx.arc(w / 2, h / 2, 30, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.moveTo(w / 2, 10)
-  ctx.lineTo(w / 2, h - 10)
-  ctx.stroke()
-  ctx.strokeRect(w / 2 - 55, 10, 110, 45)
-  ctx.strokeRect(w / 2 - 55, h - 55, 110, 45)
-
-  ctx.fillStyle = '#ffffff08'
-  ctx.fillRect(w / 2 - 2, 10, 4, h - 20)
-}
-
-function generateNarrationPlayers(w, h, isHome, t, totalDur) {
-  const players = []
-  const progress = Math.min(t / totalDur, 1)
-
-  const baseGo = { x: w * (isHome ? 0.25 : 0.75), y: h * 0.5 }
-  const attGo = { x: w * (isHome ? 0.7 : 0.3), y: h * 0.45 }
-
-  const defLine = [
-    { x: pulse(t, 0, 10), y: h * 0.22 },
-    { x: pulse(t, 1, 8), y: h * 0.26 },
-    { x: pulse(t, 2, 12), y: h * 0.24 },
-    { x: pulse(t, 3, 9), y: h * 0.28 },
-  ]
-  for (const d of defLine) {
-    players.push({
-      x: lerp(baseGo.x + d.x * 0.1, attGo.x + d.x * 0.05, progress),
-      y: lerp(baseGo.y + d.y * 0.1 - h * 0.15, attGo.y + d.y * 0.05, progress),
-    })
-  }
-
-  const midLine = [
-    { x: pulse(t, 0.5, 15), y: h * 0.4 },
-    { x: pulse(t, 1.5, 12), y: h * 0.5 },
-    { x: pulse(t, 2.5, 14), y: h * 0.6 },
-  ]
-  for (const m of midLine) {
-    players.push({
-      x: lerp(baseGo.x + m.x * 0.1, attGo.x + m.x * 0.1, progress),
-      y: lerp(baseGo.y + m.y * 0.1 - h * 0.1, attGo.y + m.y * 0.05, progress),
-    })
-  }
-
-  const fwdLine = [
-    { x: pulse(t, 0.7, 18), y: h * 0.65 },
-    { x: pulse(t, 1.7, 14), y: h * 0.72 },
-    { x: pulse(t, 2.7, 16), y: h * 0.60 },
-  ]
-  for (const f of fwdLine) {
-    players.push({
-      x: lerp(baseGo.x + f.x * 0.15, attGo.x + f.x * 0.1, progress),
-      y: lerp(baseGo.y + f.y * 0.1 - h * 0.05, attGo.y + f.y * 0.1, progress),
-    })
-  }
-
-  return players
-}
-
-function getBallNarrationX(t, total, w) {
-  const prog = Math.min(t / total, 1)
-  const start = w * 0.3
-  const mid = w * 0.6 + Math.sin(t * 2) * 20
-  const end = w * 0.5 + Math.sin(t * 3) * 10
-  if (prog < 0.4) return w * 0.3 + (w * 0.6 - w * 0.3) * (prog / 0.4) + Math.sin(t * 2) * 10
-  if (prog < 0.7) return w * 0.6 + Math.sin(t * 2) * 15
-  return w * 0.6 - (w * 0.6 - w * 0.5) * ((prog - 0.7) / 0.3) + Math.sin(t * 3) * 8
-}
-
-function getBallNarrationY(t, total, h) {
-  const prog = Math.min(t / total, 1)
-  if (prog < 0.4) return h * 0.5 + Math.cos(t * 1.5) * 8
-  if (prog < 0.7) return h * 0.4 + Math.sin(t * 2) * 10 - (prog - 0.4) / 0.3 * (h * 0.15)
-  return h * 0.25 + Math.sin(t * 4) * 5
-}
-
+// ---------------------------------------------------------------------------
+// GOAL / PENALTY
+// ---------------------------------------------------------------------------
 function drawGoal(ctx, w, h, phase, resultado, selectedGoal) {
   ctx.fillStyle = '#0a3d1a'
   ctx.fillRect(0, 0, w, h)
@@ -547,12 +726,4 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal) {
       ctx.fillText('🧤', defZone.x, defZone.y)
     }
   }
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * Math.min(Math.max(t, 0), 1)
-}
-
-function pulse(t, phase, amp) {
-  return Math.sin(t * 1.2 + phase) * amp
 }
