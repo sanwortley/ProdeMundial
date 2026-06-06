@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 active_duels: dict[int, dict[int, WebSocket]] = {}
 game_tasks: dict[int, asyncio.Task] = {}
 message_queues: dict[int, dict[int, asyncio.Queue]] = {}
+game_states: dict[int, dict] = {}
 
 ROUND_TIMEOUT = 10
 ANIMATION_DURATION = 10
@@ -65,6 +66,17 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
                 if duelo_id not in game_tasks:
                     task = asyncio.create_task(_run_game(duelo_id))
                     game_tasks[duelo_id] = task
+        elif duelo and duelo.estado == "playing" and duelo_id in game_states:
+            # Reconnect: send current game state
+            state = game_states[duelo_id]
+            if "match_start" in state:
+                await websocket.send_json(state["match_start"])
+            if "animation_phase" in state:
+                await websocket.send_json(state["animation_phase"])
+            if "penalty_phase" in state:
+                await websocket.send_json(state["penalty_phase"])
+            if "ronda_actual" in state:
+                await websocket.send_json({"type": "ronda_info", "ronda": state["ronda_actual"]})
     finally:
         db.close()
 
@@ -110,6 +122,7 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
 
 async def _run_game(duelo_id: int):
     db = SessionLocal()
+    game_states[duelo_id] = {}
     try:
         duelo = db.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
         if not duelo or duelo.estado != "playing":
@@ -120,14 +133,16 @@ async def _run_game(duelo_id: int):
         retador_nombre = retador.nombre if retador else "?"
         rival_nombre = rival.nombre if rival else "?"
 
-        await broadcast(duelo_id, {
+        match_start_msg = {
             "type": "match_start",
             "duelo_id": duelo_id,
             "retador": retador_nombre,
             "rival": rival_nombre,
             "retador_id": duelo.id_retador,
             "rival_id": duelo.id_rival,
-        })
+        }
+        game_states[duelo_id]["match_start"] = match_start_msg
+        await broadcast(duelo_id, match_start_msg)
 
         for ronda_num in range(1, 6):
             duelo = _refresh_duelo(db, duelo_id)
@@ -142,18 +157,23 @@ async def _run_game(duelo_id: int):
             pateador = _get_random_shooter(db, duelo, atacante_id)
             arquero_id = duelo.id_rival if atacante_id == duelo.id_retador else duelo.id_retador
 
-            await broadcast(duelo_id, {
+            anim_msg = {
                 "type": "animation_phase",
                 "ronda": ronda_num,
                 "duracion": ANIMATION_DURATION,
-            })
+            }
+            game_states[duelo_id]["animation_phase"] = anim_msg
+            game_states[duelo_id]["ronda_actual"] = ronda_num
+            if "penalty_phase" in game_states[duelo_id]:
+                del game_states[duelo_id]["penalty_phase"]
+            await broadcast(duelo_id, anim_msg)
 
             try:
                 await asyncio.sleep(ANIMATION_DURATION)
             except asyncio.CancelledError:
                 return
 
-            await broadcast(duelo_id, {
+            penalty_msg = {
                 "type": "penalty_phase",
                 "ronda": ronda_num,
                 "atacante_id": atacante_id,
@@ -163,7 +183,9 @@ async def _run_game(duelo_id: int):
                 "pateador_posicion": pateador["posicion"] if pateador else "?",
                 "pateador_valor": pateador["valor_inicial"] if pateador else 0,
                 "timeout": ROUND_TIMEOUT,
-            })
+            }
+            game_states[duelo_id]["penalty_phase"] = penalty_msg
+            await broadcast(duelo_id, penalty_msg)
 
             pos_atacante = None
             pos_arquero = None
@@ -251,6 +273,8 @@ async def _run_game(duelo_id: int):
         db.close()
         if duelo_id in game_tasks:
             del game_tasks[duelo_id]
+        if duelo_id in game_states:
+            del game_states[duelo_id]
 
 
 def _refresh_duelo(db: Session, duelo_id: int) -> Duelo | None:
