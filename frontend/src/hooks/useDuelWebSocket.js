@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || (
+  window.location.hostname === 'localhost' ? 'http://localhost:8000' : window.location.origin
+)
 const WS_URL = API_URL.replace(/^http/, 'ws')
 
 export default function useDuelWebSocket(dueloId) {
