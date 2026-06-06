@@ -104,6 +104,8 @@ export default function Fantasy() {
     loadH2H()
     loadFechas()
     loadDuelos()
+    const interval = setInterval(loadDuelos, 5000)
+    return () => clearInterval(interval)
   }, [groupId])
 
   async function loadAllPlayers() {
