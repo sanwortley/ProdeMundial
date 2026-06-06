@@ -682,34 +682,22 @@ export default function Fantasy() {
       {/* Duelo Notification */}
       <DueloNotification groupId={groupId} />
 
-      {/* Tab: H2H */}
+      {/* Tab: Duelos */}
       {tab === 'h2h' && (
-        <div>
-          {h2hMatches.length === 0 ? (
-            <div className="glass-card rounded-2xl p-6 border border-slate-800 text-center">
-              <Swords className="w-12 h-12 text-soccer-green mx-auto mb-3" />
-              <h3 className="text-lg font-bold text-slate-100 mb-2">Partidos entre miembros</h3>
-              <p className="text-sm text-slate-400 mb-4">Cada fecha los miembros del grupo se enfrentan según un fixture round-robin. Gana el que más puntos fantasy acumule en esa fecha.</p>
-              <button onClick={handleInitH2H}
-                className="bg-gradient-green text-white font-bold px-6 py-2.5 rounded-xl hover:opacity-90 transition-all">
-                Generar fixture
-              </button>
+        <div className="space-y-4">
+          {/* Duelos */}
+          <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-soccer-green" /> Duelos ⚽
+              </h3>
+              {team?.jugadores?.length === 11 && (
+                <button onClick={() => { loadDisponibles(); setShowDueloModal(true) }}
+                  className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30 transition-all">
+                  Retar a un jugador
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Duelos */}
-              <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <Zap className="w-3.5 h-3.5 text-soccer-green" /> Duelos ⚽
-                  </h3>
-                  {team?.jugadores?.length === 11 && (
-                    <button onClick={() => { loadDisponibles(); setShowDueloModal(true) }}
-                      className="text-[10px] font-bold bg-soccer-green/20 text-soccer-green px-2.5 py-1 rounded-lg hover:bg-soccer-green/30 transition-all">
-                      Retar a un jugador
-                    </button>
-                  )}
-                </div>
                 <div className="divide-y divide-slate-800/50">
                   {duelos.filter(d => d.estado !== 'finished' && d.estado !== 'cancelled').length === 0 ? (
                     <div className="p-4 text-center text-slate-500 text-xs">
@@ -793,10 +781,7 @@ export default function Fantasy() {
                     </div>
                   </div>
                 )}
-              </div>
-
             </div>
-          )}
         </div>
       )}
 
