@@ -218,58 +218,45 @@ function drawPitch(ctx, w, h) {
   const cx = w / 2
   const cy = h / 2
 
-  // grass fill
   ctx.fillStyle = '#1a6b30'
   ctx.fillRect(0, 0, w, h)
 
-  // grass stripes
   ctx.fillStyle = '#1a7335'
   for (let y = m; y < h - m; y += 16) {
     ctx.fillRect(m, y, w - m * 2, 8)
   }
 
-  // outer boundary
   ctx.strokeStyle = 'rgba(255,255,255,0.35)'
   ctx.lineWidth = 2
   ctx.strokeRect(m, m, w - m * 2, h - m * 2)
 
-  // center line
   ctx.beginPath()
   ctx.moveTo(m, cy)
   ctx.lineTo(w - m, cy)
   ctx.stroke()
   ctx.lineWidth = 1
 
-  // center circle
   ctx.beginPath()
   ctx.arc(cx, cy, 28, 0, Math.PI * 2)
   ctx.stroke()
 
-  // center spot
   ctx.beginPath()
   ctx.arc(cx, cy, 3, 0, Math.PI * 2)
   ctx.fillStyle = 'rgba(255,255,255,0.5)'
   ctx.fill()
 
-  // top penalty area
   const paX = cx - 80, paY = m, paW = 160, paH = 50
   ctx.strokeStyle = 'rgba(255,255,255,0.45)'
   ctx.lineWidth = 1
   ctx.strokeRect(paX, paY, paW, paH)
-
-  // bottom penalty area
   ctx.strokeRect(paX, h - m - paH, paW, paH)
 
-  // top goal area (6-yard)
   const gaX = cx - 35, gaY = m, gaW = 70, gaH = 18
   ctx.strokeStyle = 'rgba(255,255,255,0.35)'
   ctx.lineWidth = 1
   ctx.strokeRect(gaX, gaY, gaW, gaH)
-
-  // bottom goal area
   ctx.strokeRect(gaX, h - m - gaH, gaW, gaH)
 
-  // penalty spots
   ctx.beginPath()
   ctx.arc(cx, m + 36, 2.5, 0, Math.PI * 2)
   ctx.fillStyle = 'rgba(255,255,255,0.5)'
@@ -278,7 +265,6 @@ function drawPitch(ctx, w, h) {
   ctx.arc(cx, h - m - 36, 2.5, 0, Math.PI * 2)
   ctx.fill()
 
-  // penalty arcs
   ctx.beginPath()
   ctx.arc(cx, m + 36, 16, -Math.PI * 0.4, Math.PI * 0.4)
   ctx.stroke()
@@ -286,22 +272,14 @@ function drawPitch(ctx, w, h) {
   ctx.arc(cx, h - m - 36, 16, Math.PI * 0.6, Math.PI * 1.4)
   ctx.stroke()
 
-  // corner arcs
   const cr = 7
   ctx.strokeStyle = 'rgba(255,255,255,0.3)'
   ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.arc(m, m, cr, 0, Math.PI / 2)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(w - m, m, cr, Math.PI / 2, Math.PI)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(m, h - m, cr, Math.PI * 1.5, Math.PI * 2)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(w - m, h - m, cr, Math.PI, Math.PI * 1.5)
-  ctx.stroke()
+  for (const [ax, ay] of [[m, m], [w - m, m], [m, h - m], [w - m, h - m]]) {
+    ctx.beginPath()
+    ctx.arc(ax, ay, cr, ax === m ? (ay === m ? 0 : Math.PI * 1.5) : (ay === m ? Math.PI / 2 : Math.PI), ax === m ? (ay === m ? Math.PI / 2 : Math.PI * 2) : (ay === m ? Math.PI : Math.PI * 1.5))
+    ctx.stroke()
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -309,15 +287,13 @@ function drawPitch(ctx, w, h) {
 // ---------------------------------------------------------------------------
 function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
   ctx.save()
-  const hScale = isHighlight ? 1.3 : 1
+  const hScale = isHighlight ? 1.4 : 1
 
-  // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)'
   ctx.beginPath()
   ctx.ellipse(x, y + 10 * hScale, 5 * hScale, 2 * hScale, 0, 0, Math.PI * 2)
   ctx.fill()
 
-  // legs
   ctx.strokeStyle = '#1a1a2e'
   ctx.lineWidth = 1.5 * hScale
   ctx.beginPath()
@@ -327,7 +303,6 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
   ctx.lineTo(x + 2.5 * hScale, y + 9 * hScale)
   ctx.stroke()
 
-  // body (jersey)
   ctx.fillStyle = jerseyColor
   ctx.strokeStyle = 'rgba(255,255,255,0.2)'
   ctx.lineWidth = 0.5
@@ -336,7 +311,6 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
   ctx.fill()
   ctx.stroke()
 
-  // jersey detail (sleeves)
   ctx.fillStyle = 'rgba(255,255,255,0.08)'
   ctx.beginPath()
   ctx.ellipse(x - 4 * hScale, y - 1 * hScale, 2.5 * hScale, 4 * hScale, -0.3, 0, Math.PI * 2)
@@ -345,13 +319,11 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
   ctx.ellipse(x + 4 * hScale, y - 1 * hScale, 2.5 * hScale, 4 * hScale, 0.3, 0, Math.PI * 2)
   ctx.fill()
 
-  // shorts
   ctx.fillStyle = '#1a1a2e'
   ctx.beginPath()
   ctx.rect(x - 3.5 * hScale, y + 4 * hScale, 7 * hScale, 3 * hScale)
   ctx.fill()
 
-  // head
   ctx.beginPath()
   ctx.arc(x, y - 7 * hScale, 3.5 * hScale, 0, Math.PI * 2)
   ctx.fillStyle = '#f5d6a8'
@@ -360,13 +332,11 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
   ctx.lineWidth = 0.5
   ctx.stroke()
 
-  // hair
   ctx.fillStyle = isHighlight ? '#eab308' : '#2d1b0e'
   ctx.beginPath()
   ctx.arc(x, y - 8.5 * hScale, 3 * hScale, Math.PI, 0)
   ctx.fill()
 
-  // label (number or initial)
   if (shirtLabel) {
     ctx.fillStyle = 'rgba(255,255,255,0.7)'
     ctx.font = `${Math.round(5 * hScale)}px sans-serif`
@@ -379,100 +349,186 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
 }
 
 // ---------------------------------------------------------------------------
-// PLAYER POSITIONS (keyframes)
+// SCENE-AWARE PLAYER POSITIONS
 // ---------------------------------------------------------------------------
-function getPlayerPositions(w, h, t, totalDur) {
-  const prog = clamp(t / totalDur, 0, 1)
+function getPlayerPositions(w, h, t, totalDur, lineIdx) {
   const cx = w / 2
   const cy = h / 2
+  const lineStart = lineIdx * 2.5
+  const progLine = clamp((t - lineStart) / 2.5, 0, 1)
 
-  // attacking team: top → bottom
-  // defending team: bottom → top
+  // overall advancement: 0 → 1 during the 10s
+  const overall = clamp(t / totalDur, 0, 1)
 
-  const atkDef = [
-    { x: [cx - 40, cx - 35, cx - 30, cx - 30], y: [cy - 100, cy - 95, cy - 90, cy - 85] },
-    { x: [cx + 40, cx + 35, cx + 30, cx + 30], y: [cy - 100, cy - 95, cy - 90, cy - 85] },
-    { x: [cx - 70, cx - 60, cx - 50, cx - 40], y: [cy - 80, cy - 80, cy - 75, cy - 70] },
-    { x: [cx + 70, cx + 60, cx + 50, cx + 40], y: [cy - 80, cy - 80, cy - 75, cy - 70] },
-  ]
-  const atkMid = [
-    { x: [cx - 20, cx - 25, cx - 30, cx - 20], y: [cy - 50, cy - 40, cy - 30, cy - 20] },
-    { x: [cx, cx, cx, cx], y: [cy - 40, cy - 30, cy - 20, cy - 10] },
-    { x: [cx + 20, cx + 25, cx + 30, cx + 20], y: [cy - 50, cy - 40, cy - 30, cy - 20] },
-  ]
-  const atkFwd = [
-    { x: [cx - 30, cx - 25, cx - 15, cx - 10], y: [cy + 10, cy + 25, cy + 40, cy + 50] },
-    { x: [cx, cx - 5, cx - 5, cx], y: [cy + 10, cy + 30, cy + 45, cy + 55] },
-    { x: [cx + 30, cx + 25, cx + 15, cx + 10], y: [cy + 10, cy + 25, cy + 40, cy + 50] },
-  ]
+  // Base formation: 4-3-3 attacking (blue) vs 4-3-2 defending (red)
+  // positions y advance as overall increases
 
-  const defDef = [
-    { x: [cx - 35, cx - 30, cx - 25, cx - 20], y: [cy + 100, cy + 95, cy + 90, cy + 85] },
-    { x: [cx + 35, cx + 30, cx + 25, cx + 20], y: [cy + 100, cy + 95, cy + 90, cy + 85] },
-    { x: [cx - 60, cx - 50, cx - 40, cx - 30], y: [cy + 80, cy + 75, cy + 70, cy + 65] },
-    { x: [cx + 60, cx + 50, cx + 40, cx + 30], y: [cy + 80, cy + 75, cy + 70, cy + 65] },
-  ]
-  const defMid = [
-    { x: [cx - 15, cx - 10, cx - 5, cx], y: [cy + 50, cy + 40, cy + 30, cy + 20] },
-    { x: [cx, cx + 5, cx + 10, cx + 10], y: [cy + 45, cy + 35, cy + 25, cy + 15] },
-    { x: [cx + 15, cx + 10, cx + 5, cx], y: [cy + 50, cy + 40, cy + 30, cy + 20] },
-  ]
-  const defFwd = [
-    { x: [cx - 20, cx - 15, cx - 10, cx - 5], y: [cy - 10, cy - 20, cy - 30, cy - 35] },
-    { x: [cx + 20, cx + 15, cx + 10, cx + 5], y: [cy - 10, cy - 20, cy - 30, cy - 35] },
-  ]
-
-  function interp(kf) {
-    const idx = prog < 0.33 ? 0 : prog < 0.66 ? 1 : 2
-    const frac = prog < 0.33 ? prog / 0.33 : prog < 0.66 ? (prog - 0.33) / 0.33 : (prog - 0.66) / 0.34
-    const xi = lerp(kf.x[idx], kf.x[idx + 1], frac)
-    const yi = lerp(kf.y[idx], kf.y[idx + 1], frac)
-    return { x: xi, y: yi }
+  function pos(startX, startY, endX, endY) {
+    return {
+      x: lerp(startX, endX, overall) + Math.sin(t * 1.1 + startX * 0.1) * 4,
+      y: lerp(startY, endY, overall) + Math.cos(t * 0.9 + startY * 0.1) * 3,
+    }
   }
 
-  const players = []
+  const baseAtkY = cy - 80
+  const baseDefY = cy + 80
 
-  for (const kf of atkDef) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
-  for (const kf of atkMid) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
-  for (const kf of atkFwd) players.push({ ...interp(kf), color: '#3b82f6', isHome: true })
+  // Attackers (blue) — move from top to bottom
+  const atkDef = [
+    pos(cx - 50, baseAtkY, cx - 40, cy + 60),
+    pos(cx - 20, baseAtkY + 5, cx - 15, cy + 62),
+    pos(cx + 20, baseAtkY + 5, cx + 15, cy + 62),
+    pos(cx + 50, baseAtkY, cx + 40, cy + 60),
+  ]
+  const atkMid = [
+    pos(cx - 35, baseAtkY + 35, cx - 20, cy + 20),
+    pos(cx, baseAtkY + 40, cx, cy + 25),
+    pos(cx + 35, baseAtkY + 35, cx + 20, cy + 20),
+  ]
+  const atkFwd = [
+    pos(cx - 30, baseAtkY + 75, cx - 15, cy - 5),
+    pos(cx, baseAtkY + 80, cx, cy),
+    pos(cx + 30, baseAtkY + 75, cx + 15, cy - 5),
+  ]
 
-  for (const kf of defDef) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
-  for (const kf of defMid) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
-  for (const kf of defFwd) players.push({ ...interp(kf), color: '#ef4444', isHome: false })
+  // Defenders (red) — move from bottom to top
+  const defDef = [
+    pos(cx - 45, baseDefY, cx - 35, cy - 55),
+    pos(cx - 15, baseDefY + 5, cx - 10, cy - 58),
+    pos(cx + 15, baseDefY + 5, cx + 10, cy - 58),
+    pos(cx + 45, baseDefY, cx + 35, cy - 55),
+  ]
+  const defMid = [
+    pos(cx - 30, baseDefY - 35, cx - 15, cy - 20),
+    pos(cx, baseDefY - 40, cx + 5, cy - 22),
+    pos(cx + 30, baseDefY - 35, cx + 15, cy - 20),
+  ]
+  const defFwd = [
+    pos(cx - 18, baseDefY - 75, cx - 8, cy + 5),
+    pos(cx + 18, baseDefY - 75, cx + 8, cy + 5),
+  ]
 
-  return players
+  // --- Scene-specific adjustments ---
+  let highlightIdx = -1
+  let offsetPlayers = []
+
+  if (lineIdx === 0) {
+    // "X toca para Y" — two players close, ball passes between them
+    const passerIdx = 4  // central midfielder
+    const recvIdx = 7    // left forward
+    highlightIdx = 7
+
+    const dist = 15 * Math.sin(progLine * Math.PI)
+    offsetPlayers = [
+      { idx: 4, dx: -dist * 0.5, dy: 0 },
+      { idx: 7, dx: dist * 0.5, dy: 0 },
+    ]
+  }
+
+  else if (lineIdx === 1) {
+    // "Z levanta y ve" — playmaker looks, runners go
+    highlightIdx = 5 // central mid playmaker
+    offsetPlayers = [
+      { idx: 5, dx: 0, dy: -3 * Math.sin(progLine * Math.PI) },
+      { idx: 7, dx: 0, dy: -8 * progLine },
+      { idx: 9, dx: 0, dy: -8 * progLine },
+    ]
+  }
+
+  else if (lineIdx === 2) {
+    // "W mete un centro" — winger goes wide, crosses
+    highlightIdx = 8 // right winger
+    const widePush = 20 * progLine
+    offsetPlayers = [
+      { idx: 8, dx: widePush, dy: -5 * progLine },
+      { idx: 7, dx: -5, dy: -10 * progLine },
+      { idx: 9, dx: 5, dy: -10 * progLine },
+      { idx: 0, dx: 0, dy: -5 * progLine },
+      { idx: 3, dx: 0, dy: -5 * progLine },
+    ]
+  }
+
+  else if (lineIdx === 3) {
+    // "P cabecea!" — header moment
+    highlightIdx = 9 // central forward (shooter)
+    const jumpY = -12 * Math.sin(progLine * Math.PI)
+    offsetPlayers = [
+      { idx: 9, dx: 0, dy: jumpY },
+      { idx: 7, dx: -3, dy: -5 * progLine },
+      { idx: 8, dx: 3, dy: -5 * progLine },
+    ]
+  }
+
+  const allPos = [...atkDef, ...atkMid, ...atkFwd, ...defDef, ...defMid, ...defFwd]
+
+  // apply offsets
+  for (const o of offsetPlayers) {
+    if (allPos[o.idx]) {
+      allPos[o.idx].x += o.dx
+      allPos[o.idx].y += o.dy
+    }
+  }
+
+  return allPos.map((p, i) => ({
+    x: clamp(p.x, 15, w - 15),
+    y: clamp(p.y, 15, h - 15),
+    color: i < 10 ? '#3b82f6' : '#ef4444',
+    isHome: i < 10,
+    isHighlight: i === (highlightIdx + (i < 10 ? 0 : 0)),
+  }))
 }
 
 // ---------------------------------------------------------------------------
-// BALL POSITION
+// SCENE-AWARE BALL POSITION
 // ---------------------------------------------------------------------------
-function getBallPos(t, totalDur, w, h) {
-  const prog = clamp(t / totalDur, 0, 1)
+function getBallPos(t, totalDur, w, h, lineIdx) {
   const cx = w / 2
   const cy = h / 2
+  const lineStart = lineIdx * 2.5
+  const prog = clamp((t - lineStart) / 2.5, 0, 1)
 
-  // ball arcs from midfield towards the penalty area
-  const startX = cx, startY = cy - 30
-  const midX = cx - 30 + Math.sin(t * 2.5) * 15, midY = cy + 5
-  const crossX = cx + 20 + Math.sin(t * 3) * 10, crossY = cy + 35
-  const endX = cx + Math.sin(t * 4) * 8, endY = cy + 58
+  const s = (a, b, p) => lerp(a, b, p)
 
-  let bx, by
-  if (prog < 0.3) {
-    const p = prog / 0.3
-    bx = lerp(startX, midX, p)
-    by = lerp(startY, midY, p) + Math.sin(t * 3) * 6
-  } else if (prog < 0.6) {
-    const p = (prog - 0.3) / 0.3
-    bx = lerp(midX, crossX, p) + Math.sin(t * 2) * 8
-    by = lerp(midY, crossY, p)
-  } else {
-    const p = (prog - 0.6) / 0.4
-    bx = lerp(crossX, endX, p)
-    by = lerp(crossY, endY, p) - Math.sin(t * 5) * 3
+  if (lineIdx === 0) {
+    // pass from midfielder to forward
+    const x1 = cx - 10, y1 = cy - 25
+    const x2 = cx - 20, y2 = cy + 5
+    return {
+      x: s(x1, x2, prog) + Math.sin(t * 3) * 2,
+      y: s(y1, y2, prog) + Math.cos(t * 2) * 2,
+    }
   }
 
-  return { x: bx, y: by }
+  if (lineIdx === 1) {
+    // ball at playmaker's feet, slight movement
+    return {
+      x: cx + 5 + Math.sin(t * 1.5) * 5,
+      y: cy + Math.sin(t * 1.8) * 4,
+    }
+  }
+
+  if (lineIdx === 2) {
+    // cross: ball arcs from right flank to the box
+    const sx = cx + 40, sy = cy - 10
+    const mx = cx + 25, my = cy + 15
+    const ex = cx + 5, ey = cy + 40
+    const p = prog
+    return {
+      x: sx + (mx - sx) * p + (ex - mx) * p * p,
+      y: sy + (my - sy) * p + (ey - my) * p * p - Math.sin(p * Math.PI) * 12,
+    }
+  }
+
+  if (lineIdx === 3) {
+    // ball at penalty spot, header moment
+    const bounce = Math.sin(prog * Math.PI * 2) * Math.max(1 - prog, 0) * 3
+    return {
+      x: cx + Math.sin(t * 2) * 2,
+      y: cy + 45 + bounce,
+    }
+  }
+
+  return { x: cx, y: cy }
 }
 
 // ---------------------------------------------------------------------------
@@ -489,8 +545,6 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
 
   const totalDur = script.reduce((s, l) => s + l.dur, 0)
 
-  const players = getPlayerPositions(w, h, t, totalDur)
-
   let elapsed = 0
   let lineIdx = 0
   for (let i = 0; i < script.length; i++) {
@@ -501,16 +555,24 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
   lineIdx = Math.min(lineIdx, script.length - 1)
   scriptLineRef.current = lineIdx
 
+  const players = getPlayerPositions(w, h, t, totalDur, lineIdx)
+
   for (const p of players) {
     if (!p) continue
-    drawPlayer(ctx, p.x, p.y, p.color, false)
+    drawPlayer(ctx, p.x, p.y, p.color, p.isHighlight)
   }
 
-  const ball = getBallPos(t, totalDur, w, h)
+  const ball = getBallPos(t, totalDur, w, h, lineIdx)
+
+  // ball shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)'
+  ctx.beginPath()
+  ctx.ellipse(ball.x, ball.y + 5, 5, 2, 0, 0, Math.PI * 2)
+  ctx.fill()
 
   // ball
   ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.4)'
+  ctx.shadowColor = 'rgba(0,0,0,0.3)'
   ctx.shadowBlur = 4
   ctx.beginPath()
   ctx.arc(ball.x, ball.y, 4, 0, Math.PI * 2)
@@ -520,7 +582,7 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
   ctx.lineWidth = 0.5
   ctx.stroke()
 
-  // ball pentagons
+  // pentagons
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2 + t
     ctx.beginPath()
@@ -530,7 +592,7 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
   }
   ctx.restore()
 
-  // text narration on canvas
+  // narration text
   ctx.save()
   ctx.shadowColor = 'rgba(0,0,0,0.9)'
   ctx.shadowBlur = 10
@@ -538,8 +600,7 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
   ctx.font = 'bold 14px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  const text = script[lineIdx]?.text || ''
-  ctx.fillText(text, w / 2, h - 10)
+  ctx.fillText(script[lineIdx]?.text || '', w / 2, h - 10)
   ctx.restore()
 
   animRef.current = requestAnimationFrame(() => {

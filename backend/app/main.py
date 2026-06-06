@@ -200,6 +200,9 @@ frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     from fastapi.responses import FileResponse
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="frontend_assets")
+    sounds_path = frontend_dist / "sounds"
+    if sounds_path.exists():
+        app.mount("/sounds", StaticFiles(directory=str(sounds_path)), name="sounds")
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_frontend(full_path: str):
         file_path = frontend_dist / full_path
