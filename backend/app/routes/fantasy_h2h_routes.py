@@ -105,7 +105,7 @@ def init_h2h_fixture(
         raise HTTPException(status_code=400, detail="No se pudo generar el fixture")
 
     # Get available fechas from Partido table
-    fechas = db.query(Partido.fase).distinct().order_by(Partido.fecha.asc()).all()
+    fechas = db.query(Partido.fase, Partido.fecha).distinct().order_by(Partido.fecha.asc()).all()
     fechas_list = [f[0] for f in fechas]
 
     created = 0

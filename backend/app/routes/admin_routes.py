@@ -38,9 +38,9 @@ def list_fechas(
     current_user: Usuario = Depends(get_current_user),
 ):
     """List all available fechas with match counts."""
-    fechas = db.query(Partido.fase).distinct().order_by(Partido.fecha.asc()).all()
+    fechas = db.query(Partido.fase, Partido.fecha).distinct().order_by(Partido.fecha.asc()).all()
     result = []
-    for (fase,) in fechas:
+    for (fase, _) in fechas:
         total = db.query(Partido).filter(Partido.fase == fase).count()
         finalizados = db.query(Partido).filter(Partido.fase == fase, Partido.finalizado == True).count()
         result.append(FechaInfo(
