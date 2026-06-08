@@ -219,7 +219,7 @@ export default function DueloPage() {
             ) : (
               <div className="text-slate-300 text-lg font-black">Empate 🤝</div>
             )}
-            <button onClick={() => navigate(`/my-groups`)}
+            <button onClick={() => navigate(`/groups/${dueloInfo.id_grupo}/fantasy`)}
               className="mt-3 px-6 py-2.5 bg-gradient-green text-white font-bold rounded-xl">
               Volver
             </button>
