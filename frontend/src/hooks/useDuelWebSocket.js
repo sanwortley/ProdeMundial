@@ -39,8 +39,8 @@ export default function useDuelWebSocket(dueloId) {
     }
   }, [])
 
-  const shoot = useCallback((posicion) => {
-    sendMessage({ type: 'shoot', posicion })
+  const shoot = useCallback((posicion, fuerza = 50) => {
+    sendMessage({ type: 'shoot', posicion, fuerza })
   }, [sendMessage])
 
   const defend = useCallback((posicion) => {

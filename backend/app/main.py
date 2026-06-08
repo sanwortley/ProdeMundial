@@ -131,6 +131,14 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE rondas_duelo ADD COLUMN fuerza INTEGER DEFAULT 50"))
+        conn.commit()
+        logger.info("Added fuerza column to rondas_duelo (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Seed players from football-data.org
 db = SessionLocal()
 try:

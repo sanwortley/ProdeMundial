@@ -223,6 +223,7 @@ class RondaDuelo(Base):
     posicion_atacante = Column(Integer, nullable=True)  # 1-5, null = timeout
     posicion_arquero = Column(Integer, nullable=True)   # 1-5, null = timeout
     es_gol = Column(Boolean, default=False)
+    fuerza = Column(Integer, default=50)  # 0-100, swipe force
     pateador_nombre = Column(String, nullable=True)  # player name for anim
     arquero_nombre = Column(String, nullable=True)  # gk name for anim
 

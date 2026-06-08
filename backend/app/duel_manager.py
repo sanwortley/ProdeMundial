@@ -188,6 +188,16 @@ async def _run_game(duelo_id: int):
             except asyncio.CancelledError:
                 return
 
+            # Drain stale messages from previous round
+            for uid in (duelo.id_retador, duelo.id_rival):
+                q = message_queues.get(duelo_id, {}).get(uid)
+                if q:
+                    while not q.empty():
+                        try:
+                            q.get_nowait()
+                        except asyncio.QueueEmpty:
+                            break
+
             penalty_msg = {
                 "type": "penalty_phase",
                 "ronda": ronda_num,
@@ -206,35 +216,32 @@ async def _run_game(duelo_id: int):
 
             pos_atacante = None
             pos_arquero = None
+            fuerza = 50
 
-            async def recv_choice(uid: int, expected_type: str) -> int | None:
+            async def recv_choice(uid: int, expected_type: str) -> dict | None:
                 q = message_queues.get(duelo_id, {}).get(uid)
                 if not q:
                     return None
                 try:
                     data = await asyncio.wait_for(q.get(), timeout=ROUND_TIMEOUT)
                     if data.get("type") == expected_type:
-                        return data.get("posicion")
+                        return data
                 except asyncio.TimeoutError:
                     pass
                 return None
 
             try:
-                results = await asyncio.gather(
+                atk_data, def_data = await asyncio.gather(
                     recv_choice(atacante_id, "shoot"),
                     recv_choice(arquero_id, "defend"),
                 )
-                pos_atacante, pos_arquero = results
+                pos_atacante = atk_data.get("posicion") if atk_data else None
+                fuerza = atk_data.get("fuerza", 50) if atk_data else 50
+                pos_arquero = def_data.get("posicion") if def_data else None
             except asyncio.CancelledError:
                 return
 
-            bonus_arquero = _prob_arquero_bonus(gk_info["valor_inicial"]) if gk_info else 0
-            es_gol = _calcular_resultado(
-                pos_atacante, pos_arquero,
-                pateador["valor_inicial"] if pateador else 0,
-                pateador["posicion"] if pateador else "DEF",
-                bonus_arquero,
-            )
+            es_gol = _calcular_resultado(pos_atacante, pos_arquero, fuerza)
 
             if es_gol:
                 if atacante_id == duelo.id_retador:
@@ -251,6 +258,7 @@ async def _run_game(duelo_id: int):
                 es_gol=es_gol,
                 pateador_nombre=pateador["nombre"] if pateador else "?",
                 arquero_nombre=gk_info["nombre"] if gk_info else "?",
+                fuerza=fuerza,
             )
             db.add(ronda)
             db.commit()
@@ -261,6 +269,7 @@ async def _run_game(duelo_id: int):
                 "es_gol": es_gol,
                 "posicion_atacante": pos_atacante,
                 "posicion_arquero": pos_arquero,
+                "fuerza": fuerza,
                 "goles_retador": duelo.goles_retador,
                 "goles_rival": duelo.goles_rival,
                 "pateador_nombre": pateador["nombre"] if pateador else "?",
@@ -290,6 +299,8 @@ async def _run_game(duelo_id: int):
             "rival_nombre": rival_nombre,
             "total_rondas": 10,
         })
+    except Exception as e:
+        logger.error(f"Error en _run_game duelo {duelo_id}: {e}", exc_info=True)
     finally:
         db.close()
         if duelo_id in game_tasks:
@@ -392,43 +403,16 @@ def _get_random_shooter(db: Session, duelo: Duelo, atacante_id: int) -> dict | N
 def _calcular_resultado(
     pos_atk: int | None,
     pos_def: int | None,
-    valor_pateador: int,
-    posicion_pateador: str,
-    bonus_arquero: int,
+    fuerza: int,
 ) -> bool:
-    if pos_atk is None or pos_atk == 0:
-        return False          # attacker timed out / no choice → no goal
+    FUERZA_MAX = 80  # above this → miss (too strong)
+    if pos_atk is None or pos_atk == 0 or fuerza > FUERZA_MAX:
+        return False          # attacker timed out / no choice / too strong → no goal
     if pos_def is None or pos_def == 0:
         return True           # defender timed out / no choice → automatic goal
     if pos_atk == pos_def:
-        return False
-
-    prob_base = _prob_por_valor(valor_pateador)
-    bonus_pos = {"FWD": 5, "MID": 0, "DEF": -10}.get(posicion_pateador, 0)
-
-    prob = prob_base + bonus_pos - bonus_arquero
-    prob = max(10, min(95, prob))
-    return random.random() < (prob / 100)
-
-
-def _prob_por_valor(valor: int) -> int:
-    if valor > 42:
-        return 85
-    if valor > 27:
-        return 70
-    if valor > 14:
-        return 55
-    return 40
-
-
-def _prob_arquero_bonus(valor: int) -> int:
-    if valor > 42:
-        return 15
-    if valor > 27:
-        return 10
-    if valor > 14:
-        return 5
-    return 0
+        return False          # same zone → saved
+    return True               # different zone → goal
 
 
 async def broadcast(duelo_id: int, message: dict):
