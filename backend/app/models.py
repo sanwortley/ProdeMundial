@@ -224,6 +224,7 @@ class RondaDuelo(Base):
     posicion_arquero = Column(Integer, nullable=True)   # 1-5, null = timeout
     es_gol = Column(Boolean, default=False)
     pateador_nombre = Column(String, nullable=True)  # player name for anim
+    arquero_nombre = Column(String, nullable=True)  # gk name for anim
 
     duelo = relationship("Duelo", back_populates="rondas")
     atacante = relationship("Usuario", foreign_keys=[atacante_id])

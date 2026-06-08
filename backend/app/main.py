@@ -122,6 +122,15 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: add arquero_nombre column to rondas_duelo if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE rondas_duelo ADD COLUMN arquero_nombre VARCHAR"))
+        conn.commit()
+        logger.info("Added arquero_nombre column to rondas_duelo (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Seed players from football-data.org
 db = SessionLocal()
 try:

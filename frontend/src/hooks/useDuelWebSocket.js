@@ -16,6 +16,8 @@ export default function useDuelWebSocket(dueloId) {
     pateadorNombre: null,
     pateadorPosicion: null,
     pateadorValor: 0,
+    arqueroNombre: null,
+    arqueroValor: 0,
     golesRetador: 0,
     golesRival: 0,
     retadorNombre: '',
@@ -119,6 +121,7 @@ function handleMessage(data, setState, sendMessage) {
         duracion: data.duracion,
         pateadorNombre: data.pateador_nombre,
         pateadorPosicion: data.pateador_posicion,
+        arqueroNombre: data.arquero_nombre,
         retadorJugadores: data.retador_jugadores || [],
         rivalJugadores: data.rival_jugadores || [],
         resultado: null,
@@ -138,6 +141,8 @@ function handleMessage(data, setState, sendMessage) {
           pateadorNombre: data.pateador_nombre,
           pateadorPosicion: data.pateador_posicion,
           pateadorValor: data.pateador_valor,
+          arqueroNombre: data.arquero_nombre,
+          arqueroValor: data.arquero_valor,
           duracion: data.timeout,
         }
       })

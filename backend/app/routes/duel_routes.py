@@ -31,6 +31,7 @@ class RondaResponse(BaseModel):
     posicion_arquero: Optional[int] = None
     es_gol: Optional[bool] = None
     pateador_nombre: Optional[str] = None
+    arquero_nombre: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -279,5 +280,6 @@ def _duelo_to_response(duelo: Duelo, db: Session) -> DueloResponse:
             posicion_arquero=r.posicion_arquero,
             es_gol=r.es_gol,
             pateador_nombre=r.pateador_nombre,
+            arquero_nombre=r.arquero_nombre,
         ) for r in rondas],
     )

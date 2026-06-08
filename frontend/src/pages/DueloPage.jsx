@@ -107,7 +107,7 @@ export default function DueloPage() {
           </div>
           <div className="px-4 text-center">
             <div className="text-xs text-slate-500 font-bold uppercase">Ronda</div>
-            <div className="text-lg font-black text-soccer-green">{gameState.ronda}/5</div>
+            <div className="text-lg font-black text-soccer-green">{gameState.ronda}/10</div>
           </div>
           <div className="flex-1 text-center">
             <div className={`text-lg font-extrabold ${gameState.ganadorId && gameState.ganadorId !== userId ? 'text-soccer-green' : ''}`}>
@@ -118,6 +118,21 @@ export default function DueloPage() {
         </div>
       </div>
 
+      {/* Matchup info */}
+      {(gameState.phase === 'animation' || gameState.phase === 'penalty') && (
+        <div className="glass-card rounded-xl px-3 py-2 border border-slate-800 mb-3">
+          <div className="flex items-center justify-center gap-3 text-sm">
+            <span className={`font-bold ${gameState.isAtacante ? 'text-soccer-green' : 'text-slate-300'}`}>
+              {gameState.isAtacante ? '⚽ ' : ''}{gameState.atacanteNombre || '?'}
+            </span>
+            <span className="text-slate-600 text-xs">vs</span>
+            <span className={`font-bold ${!gameState.isAtacante ? 'text-yellow-400' : 'text-slate-300'}`}>
+              {!gameState.isAtacante ? '🧤 ' : ''}{gameState.arqueroNombre ? `Arq: ${gameState.arqueroNombre}` : '?'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Canvas */}
       <div className="flex-1 flex items-center justify-center">
         <DueloCanvas
@@ -126,6 +141,7 @@ export default function DueloPage() {
           isAtacante={gameState.isAtacante}
           pateadorNombre={gameState.pateadorNombre}
           pateadorPosicion={gameState.pateadorPosicion}
+          arqueroNombre={gameState.arqueroNombre}
           resultado={gameState.resultado}
           onShoot={shoot}
           onDefend={defend}

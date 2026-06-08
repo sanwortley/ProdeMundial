@@ -134,6 +134,9 @@ async def _run_game(duelo_id: int):
         retador_nombre = retador.nombre if retador else "?"
         rival_nombre = rival.nombre if rival else "?"
 
+        gk_retador = _get_team_goalkeeper(db, duelo, duelo.id_retador)
+        gk_rival = _get_team_goalkeeper(db, duelo, duelo.id_rival)
+
         match_start_msg = {
             "type": "match_start",
             "duelo_id": duelo_id,
@@ -141,11 +144,12 @@ async def _run_game(duelo_id: int):
             "rival": rival_nombre,
             "retador_id": duelo.id_retador,
             "rival_id": duelo.id_rival,
+            "total_rondas": 10,
         }
         game_states[duelo_id]["match_start"] = match_start_msg
         await broadcast(duelo_id, match_start_msg)
 
-        for ronda_num in range(1, 6):
+        for ronda_num in range(1, 11):
             duelo = _refresh_duelo(db, duelo_id)
             if not duelo or duelo.estado != "playing":
                 break
@@ -155,8 +159,10 @@ async def _run_game(duelo_id: int):
             duelo.turno_atacante_id = atacante_id
             db.commit()
 
-            pateador = _get_random_shooter(db, duelo, atacante_id)
             arquero_id = duelo.id_rival if atacante_id == duelo.id_retador else duelo.id_retador
+            gk_info = gk_rival if atacante_id == duelo.id_retador else gk_retador
+
+            pateador = _get_random_shooter(db, duelo, atacante_id)
 
             retador_jugs = _get_team_player_names(db, duelo, duelo.id_retador)
             rival_jugs = _get_team_player_names(db, duelo, duelo.id_rival)
@@ -167,6 +173,7 @@ async def _run_game(duelo_id: int):
                 "duracion": ANIMATION_DURATION,
                 "pateador_nombre": pateador["nombre"] if pateador else "?",
                 "pateador_posicion": pateador["posicion"] if pateador else "?",
+                "arquero_nombre": gk_info["nombre"] if gk_info else "Arquero",
                 "retador_jugadores": retador_jugs,
                 "rival_jugadores": rival_jugs,
             }
@@ -190,6 +197,8 @@ async def _run_game(duelo_id: int):
                 "pateador_nombre": pateador["nombre"] if pateador else "?",
                 "pateador_posicion": pateador["posicion"] if pateador else "?",
                 "pateador_valor": pateador["valor_inicial"] if pateador else 0,
+                "arquero_nombre": gk_info["nombre"] if gk_info else "Arquero",
+                "arquero_valor": gk_info["valor_inicial"] if gk_info else 0,
                 "timeout": ROUND_TIMEOUT,
             }
             game_states[duelo_id]["penalty_phase"] = penalty_msg
@@ -219,11 +228,12 @@ async def _run_game(duelo_id: int):
             except asyncio.CancelledError:
                 return
 
+            bonus_arquero = _prob_arquero_bonus(gk_info["valor_inicial"]) if gk_info else 0
             es_gol = _calcular_resultado(
                 pos_atacante, pos_arquero,
                 pateador["valor_inicial"] if pateador else 0,
                 pateador["posicion"] if pateador else "DEF",
-                db, duelo, arquero_id,
+                bonus_arquero,
             )
 
             if es_gol:
@@ -240,6 +250,7 @@ async def _run_game(duelo_id: int):
                 posicion_arquero=pos_arquero,
                 es_gol=es_gol,
                 pateador_nombre=pateador["nombre"] if pateador else "?",
+                arquero_nombre=gk_info["nombre"] if gk_info else "?",
             )
             db.add(ronda)
             db.commit()
@@ -253,6 +264,7 @@ async def _run_game(duelo_id: int):
                 "goles_retador": duelo.goles_retador,
                 "goles_rival": duelo.goles_rival,
                 "pateador_nombre": pateador["nombre"] if pateador else "?",
+                "arquero_nombre": gk_info["nombre"] if gk_info else "?",
             })
 
             try:
@@ -276,6 +288,7 @@ async def _run_game(duelo_id: int):
             "goles_rival": duelo.goles_rival if duelo else 0,
             "retador_nombre": retador_nombre,
             "rival_nombre": rival_nombre,
+            "total_rondas": 10,
         })
     finally:
         db.close()
@@ -295,7 +308,7 @@ def _pick_random_attacker(duelo: Duelo, ronda_num: int) -> int:
     return duelo.id_rival if duelo.turno_atacante_id == duelo.id_retador else duelo.id_retador
 
 
-def _get_team_player_names(db: Session, duelo: Duelo, user_id: int) -> list[str]:
+def _get_team_player_names(db: Session, duelo: Duelo, user_id: int) -> list[dict]:
     ef = db.query(EquipoFecha).filter(
         EquipoFecha.id_usuario == user_id,
         EquipoFecha.id_grupo == duelo.id_grupo,
@@ -305,12 +318,44 @@ def _get_team_player_names(db: Session, duelo: Duelo, user_id: int) -> list[str]
     picks = db.query(JugadorEquipoFecha).filter(
         JugadorEquipoFecha.id_equipo == ef.id_equipo
     ).all()
-    names = []
+    players = []
     for p in picks:
         j = db.query(Jugador).filter(Jugador.id_jugador == p.id_jugador).first()
         if j and j.posicion != "GK":
-            names.append(j.nombre)
-    return names
+            players.append(j)
+    # Sort by position to match canvas indices: DEF (0-3), MID (4-6), FWD (7-9)
+    players.sort(key=lambda j: {"DEF": 0, "MID": 1, "FWD": 2}.get(j.posicion, 3))
+    return [
+        {
+            "nombre": j.nombre,
+            "posicion": j.posicion,
+            "posicion_especifica": j.posicion_especifica or j.posicion,
+        }
+        for j in players
+    ]
+
+
+def _get_team_goalkeeper(db: Session, duelo: Duelo, user_id: int) -> dict | None:
+    ef = db.query(EquipoFecha).filter(
+        EquipoFecha.id_usuario == user_id,
+        EquipoFecha.id_grupo == duelo.id_grupo,
+    ).first()
+    if not ef:
+        return None
+    pick = db.query(JugadorEquipoFecha).join(Jugador).filter(
+        JugadorEquipoFecha.id_equipo == ef.id_equipo,
+        Jugador.posicion == "GK",
+    ).first()
+    if not pick:
+        return None
+    j = pick.jugador
+    return {
+        "id_jugador": j.id_jugador,
+        "nombre": j.nombre,
+        "posicion": "GK",
+        "posicion_especifica": j.posicion_especifica or "GK",
+        "valor_inicial": j.valor_inicial,
+    }
 
 
 def _get_random_shooter(db: Session, duelo: Duelo, atacante_id: int) -> dict | None:
@@ -349,9 +394,7 @@ def _calcular_resultado(
     pos_def: int | None,
     valor_pateador: int,
     posicion_pateador: str,
-    db: Session,
-    duelo: Duelo,
-    arquero_id: int,
+    bonus_arquero: int,
 ) -> bool:
     if pos_atk is None:
         return False
@@ -362,24 +405,6 @@ def _calcular_resultado(
 
     prob_base = _prob_por_valor(valor_pateador)
     bonus_pos = {"FWD": 5, "MID": 0, "DEF": -10}.get(posicion_pateador, 0)
-
-    ef = db.query(EquipoFecha).filter(
-        EquipoFecha.id_usuario == arquero_id,
-        EquipoFecha.id_grupo == duelo.id_grupo,
-    ).first()
-    bonus_arquero = 0
-    if ef:
-        picks = db.query(JugadorEquipoFecha).filter(
-            JugadorEquipoFecha.id_equipo == ef.id_equipo
-        ).all()
-        for p in picks:
-            j = db.query(Jugador).filter(
-                Jugador.id_jugador == p.id_jugador,
-                Jugador.posicion == "GK",
-            ).first()
-            if j:
-                bonus_arquero = _prob_arquero_bonus(j.valor_inicial)
-                break
 
     prob = prob_base + bonus_pos - bonus_arquero
     prob = max(10, min(95, prob))
