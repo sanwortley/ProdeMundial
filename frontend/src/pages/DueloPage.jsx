@@ -43,32 +43,44 @@ export default function DueloPage() {
   }
 
   const soundCacheRef = useRef({})
+  const audioCtxRef = useRef(null)
+
+  function getAudioCtx() {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)()
+    }
+    return audioCtxRef.current
+  }
 
   useEffect(() => {
-    // Preload all sounds as blobs (avoid 416 range requests)
+    // Preload all sounds as audio buffers (no range requests)
     const names = ['whistle', 'goal', 'save', 'shoot', 'crowd', 'win', 'lose']
+    const ctx = getAudioCtx()
     names.forEach(async (n) => {
       try {
         const res = await fetch(`/sounds/${n}.mp3`)
         if (res.ok) {
-          const blob = await res.blob()
-          soundCacheRef.current[n] = URL.createObjectURL(blob)
+          const buf = await res.arrayBuffer()
+          const audioBuf = await ctx.decodeAudioData(buf)
+          soundCacheRef.current[n] = audioBuf
         }
       } catch {}
     })
     return () => {
-      Object.values(soundCacheRef.current).forEach(URL.revokeObjectURL)
       soundCacheRef.current = {}
     }
   }, [])
 
   function playSound(name) {
-    const url = soundCacheRef.current[name]
-    if (!url) return
+    const buf = soundCacheRef.current[name]
+    if (!buf) return
     try {
-      const audio = new Audio(url)
-      audio.volume = 0.5
-      audio.play().catch(() => {})
+      const ctx = getAudioCtx()
+      const src = ctx.createBufferSource()
+      src.buffer = buf
+      src.connect(ctx.destination)
+      src.start(0)
+      ctx.resume()
     } catch {}
   }
 

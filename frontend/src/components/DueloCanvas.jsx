@@ -260,10 +260,8 @@ export default function DueloCanvas({
     const angleDeg = angleRad * (180 / Math.PI)
     const zone = getZoneFromAngle(angleDeg)
 
-    // Force only matters for attacker
-    const elapsed = Date.now() - swipeStartTimeRef.current
-    const speed = elapsed > 0 ? dist / elapsed : 0
-    const fuerza = isAtacante ? Math.round(Math.min(speed * 100, 100)) : 50
+    // Force only matters for attacker: distance from penalty spot, not speed
+    const fuerza = isAtacante ? Math.round(Math.min(Math.hypot(pos.x - 200, pos.y - 270) / 2.5, 100)) : 50
 
     resetSwipe()
 
