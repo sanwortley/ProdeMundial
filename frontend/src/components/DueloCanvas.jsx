@@ -6,7 +6,19 @@ const GOAL_ZONES = [
   { id: 3, label: 'C',   x: 0.50, y: 0.35 },
   { id: 4, label: 'II',  x: 0.25, y: 0.70 },
   { id: 5, label: 'ID',  x: 0.75, y: 0.70 },
+  { id: 6, label: 'AI',  x: -0.15, y: 0.40 },
+  { id: 7, label: 'AD',  x: 1.15, y: 0.40 },
 ]
+
+const MISS_LABELS = {
+  1: '🚀 ARRIBA!',
+  2: '📐 ANCHO!',
+  3: '🚀 ARRIBA!',
+  4: '📐 ANCHO!',
+  5: '📐 ANCHO!',
+  6: '📐 ANCHO!',
+  7: '📐 ANCHO!',
+}
 
 const randItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const lerp = (a, b, t) => a + (b - a) * Math.min(Math.max(t, 0), 1)
@@ -15,8 +27,9 @@ const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const getZoneFromAngle = (deg) => {
   const a = Math.abs(deg)
   if (a < 12) return 3              // C
-  if (a > 25) return deg < 0 ? 4 : 5  // II / ID
-  return deg < 0 ? 1 : 2              // SI / SD
+  if (a < 25) return deg < 0 ? 1 : 2  // SI / SD
+  if (a < 50) return deg < 0 ? 4 : 5  // II / ID
+  return deg < 0 ? 6 : 7              // AI / AD (wide)
 }
 
 function getScript(ronda, pateadorNombre, pateadorPosicion, retadorJugadores, rivalJugadores) {
@@ -330,8 +343,18 @@ export default function DueloCanvas({
 
       {phase === 'result' && resultado && (
         <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
-          <div className={`px-6 py-3 rounded-xl font-bold text-sm animate-bounce ${resultado.es_gol ? 'bg-soccer-green/20 text-soccer-green border border-soccer-green/30' : resultado.posicion_atacante === 1 && resultado.fuerza > 80 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-            {resultado.es_gol ? '⚽ GOL!' : resultado.posicion_atacante === 1 && resultado.fuerza > 80 ? '🚀 AFUERA!' : '🧤 Atajó!'}
+          <div className={`px-6 py-3 rounded-xl font-bold text-sm animate-bounce ${
+            resultado.es_gol
+              ? 'bg-soccer-green/20 text-soccer-green border border-soccer-green/30'
+              : resultado.posicion_atacante >= 6 || resultado.fuerza > 80
+                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+          }`}>
+            {resultado.es_gol
+              ? '⚽ GOL!'
+              : resultado.posicion_atacante >= 6 || resultado.fuerza > 80
+                ? (MISS_LABELS[resultado.posicion_atacante] || '🚀 AFUERA!')
+                : '🧤 Atajó!'}
           </div>
         </div>
       )}
@@ -1006,10 +1029,28 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
   if (phase === 'result' && resultado) {
     const atkZone = zones.find(z => z.id === resultado.posicion_atacante)
     const defZone = zones.find(z => z.id === resultado.posicion_arquero)
-    const isMissHigh = !resultado.es_gol && resultado.posicion_atacante === 1 && resultado.fuerza > 80
+    const isMiss = !resultado.es_gol && (resultado.posicion_atacante >= 6 || resultado.fuerza > 80)
+    const isSideMiss = isMiss && resultado.posicion_atacante >= 2 && resultado.posicion_atacante !== 3
 
-    if (isMissHigh) {
-      // --- Animation: ball flies over the crossbar ---
+    if (isMiss) {
+      // --- Ball flies wide / over the goal ---
+      const penaltyX = 200
+      const penaltyY = 270
+
+      const missDir = resultado.posicion_atacante === 1 || resultado.posicion_atacante === 3 ? 'up' : 'side'
+
+      let endX, endY
+      if (missDir === 'up') {
+        endX = gkCx + 40
+        endY = -80
+      } else if (resultado.posicion_atacante === 2 || resultado.posicion_atacante === 5 || resultado.posicion_atacante === 7) {
+        endX = w + 60
+        endY = gkRestY - 30
+      } else {
+        endX = -60
+        endY = gkRestY - 30
+      }
+
       const gkLookUp = Math.min(animProgress * 3, 1)
       drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
       ctx.save()
@@ -1020,11 +1061,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       ctx.fillText('😮', gkCx, gkRestY - 30 * 1.7)
       ctx.restore()
 
-      const penaltyX = 200
-      const penaltyY = 270
-
-      const arcX = lerp(penaltyX, gkCx, animProgress)
-      const arcY = penaltyY - animProgress * (penaltyY + 100)
+      const arcX = lerp(penaltyX, endX, animProgress)
+      const arcY = lerp(penaltyY, endY, animProgress)
 
       const ballSize = lerp(6, 2, Math.min(animProgress * 2, 1))
 
@@ -1037,8 +1075,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       ctx.beginPath()
       ctx.moveTo(penaltyX, penaltyY)
       for (let t = 0; t <= 1; t += 0.02) {
-        const tx = lerp(penaltyX, gkCx + 40, t)
-        const ty = penaltyY - t * (penaltyY + 100)
+        const tx = lerp(penaltyX, endX, t)
+        const ty = lerp(penaltyY, endY, t) - Math.sin(t * Math.PI) * 40
         ctx.lineTo(tx, ty)
       }
       ctx.stroke()
@@ -1073,13 +1111,14 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       // AFUERA label
       if (animProgress >= 0.15) {
         const labelAlpha = Math.min((animProgress - 0.15) * 5, 1)
+        const missLabel = MISS_LABELS[resultado.posicion_atacante] || '🚀 AFUERA!'
         ctx.save()
         ctx.globalAlpha = labelAlpha
         ctx.fillStyle = '#ef4444'
         ctx.font = `bold ${18 + (1 - animProgress) * 4}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText('🚀 AFUERA!', gkCx, gkBottom + 18)
+        ctx.fillText(missLabel, gkCx, gkBottom + 18)
         ctx.restore()
       }
     } else {
@@ -1149,8 +1188,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       ctx.font = `bold ${18 + (1 - animProgress) * 4}px sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      if (isMissHigh) {
-        ctx.fillText('🚀 AFUERA!', gkCx, gkBottom + 18)
+      if (isMiss) {
+        ctx.fillText(MISS_LABELS[resultado.posicion_atacante] || '🚀 AFUERA!', gkCx, gkBottom + 18)
       } else {
         ctx.fillText(gol ? '⚽ GOL!' : '🧤 ATAJÓ!', gkCx, gkBottom + 18)
       }

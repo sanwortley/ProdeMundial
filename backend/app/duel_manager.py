@@ -448,6 +448,8 @@ def _calcular_resultado(
     FUERZA_MAX = 80  # above this → miss (too strong)
     if pos_atk is None or pos_atk == 0 or fuerza > FUERZA_MAX:
         return False          # attacker timed out / no choice / too strong → no goal
+    if pos_atk >= 6:
+        return False          # wide zone → always miss
     if pos_def is None or pos_def == 0:
         return True           # defender timed out / no choice → automatic goal
     if pos_atk == pos_def:
