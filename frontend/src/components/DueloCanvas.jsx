@@ -128,8 +128,6 @@ export default function DueloCanvas({
       setCountdown((c) => {
         if (c <= 1) {
           clearInterval(countdownRef.current)
-          if (isAtacante && !selectedGoal) onShoot?.(0)
-          else if (!isAtacante && !selectedGoal) onDefend?.(0)
           return 0
         }
         return c - 1
@@ -138,7 +136,7 @@ export default function DueloCanvas({
     return () => {
       if (countdownRef.current) clearInterval(countdownRef.current)
     }
-  }, [phase, ronda, isAtacante])
+  }, [phase, ronda])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -219,7 +217,7 @@ export default function DueloCanvas({
       />
 
       {phase === 'penalty' && (
-        <div className="absolute -top-2 left-0 right-0 flex flex-col items-center gap-1 px-2">
+        <div className="absolute -top-2 left-0 right-0 flex flex-col items-center gap-1 px-2 pointer-events-none">
           {/* Role indicator */}
           <div className={`px-4 py-1.5 rounded-xl text-sm font-extrabold tracking-wide shadow-lg ${
             isAtacante
@@ -246,7 +244,7 @@ export default function DueloCanvas({
       )}
 
       {phase === 'penalty' && (
-        <div className="absolute top-14 left-0 right-0 h-1 bg-slate-700 rounded-full overflow-hidden">
+        <div className="absolute top-14 left-0 right-0 h-1 bg-slate-700 rounded-full overflow-hidden pointer-events-none">
           <div
             className={`h-full rounded-full transition-all ${countdown <= 3 ? 'bg-red-500' : countdown <= 5 ? 'bg-yellow-500' : 'bg-soccer-green'}`}
             style={{ width: `${(countdown / 10) * 100}%` }}

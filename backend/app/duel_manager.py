@@ -396,10 +396,10 @@ def _calcular_resultado(
     posicion_pateador: str,
     bonus_arquero: int,
 ) -> bool:
-    if pos_atk is None:
-        return False
-    if pos_def is None:
-        return True
+    if pos_atk is None or pos_atk == 0:
+        return False          # attacker timed out / no choice → no goal
+    if pos_def is None or pos_def == 0:
+        return True           # defender timed out / no choice → automatic goal
     if pos_atk == pos_def:
         return False
 
