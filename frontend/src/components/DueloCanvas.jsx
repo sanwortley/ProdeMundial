@@ -1010,7 +1010,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     // GK waiting — slight sway (shown to both)
     const swayX = Math.sin(now / 300) * 3
     const swayY = Math.sin(now / 250) * 1.5
-    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 1.7, false, 0)
+    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 2.2, false, 0)
 
     if (!selectedGoal) {
       ctx.save()
@@ -1051,13 +1051,13 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       }
 
       const gkLookUp = Math.min(animProgress * 3, 1)
-      drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
+      drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0)
       ctx.save()
       ctx.globalAlpha = gkLookUp * 0.15
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 10px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('😮', gkCx, gkRestY - 30 * 1.7)
+      ctx.fillText('😮', gkCx, gkRestY - 30 * 2.2)
       ctx.restore()
 
       const arcX = lerp(penaltyX, endX, animProgress)
@@ -1129,9 +1129,9 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         const diveX = lerp(gkCx, defZone.rx, ease)
         const diveY = lerp(gkRestY, defZone.ry + 8, ease)
         const armsOut = 0.8 + ease * 0.6
-        drawGoalkeeper(ctx, diveX, diveY, 1.7, true, armsOut)
+        drawGoalkeeper(ctx, diveX, diveY, 2.2, true, armsOut)
       } else {
-        drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
+        drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0)
       }
 
       if (atkZone) {
