@@ -24,11 +24,9 @@ export default function useDuelWebSocket(dueloId) {
     rivalNombre: '',
     retadorId: null,
     rivalId: null,
-    ganadorId: null,
-    duracion: 10,
-    resultado: null,
     retadorJugadores: [],
     rivalJugadores: [],
+    rivalLeft: false,
   })
   const wsRef = useRef(null)
   const onMessageRef = useRef(null)
@@ -207,10 +205,17 @@ function handleMessage(data, setState, sendMessage) {
       break
 
     case 'rival_disconnected':
-      setState((s) => ({ ...s, phase: 'waiting' }))
+      setState((s) => {
+        if (s.phase === 'match_end') return s
+        return { ...s, phase: 'waiting' }
+      })
       break
 
     case 'rival_reconnected':
+      break
+
+    case 'rival_left':
+      setState((s) => ({ ...s, rivalLeft: true }))
       break
   }
 }

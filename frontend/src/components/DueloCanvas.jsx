@@ -242,15 +242,16 @@ export default function DueloCanvas({
     const pos = getCanvasPos(e)
     if (!pos) { resetSwipe(); return }
 
-    // Use swipe direction (start → end) for both roles
-    const sx = swipeStartRef.current.x
-    const sy = swipeStartRef.current.y
-    const dx = pos.x - sx
-    const dy = pos.y - sy
-    const dist = Math.hypot(dx, dy)
+    const dist = Math.hypot(pos.x - swipeStartRef.current.x, pos.y - swipeStartRef.current.y)
 
     // Too short → ignore
     if (dist < 15) { resetSwipe(); return }
+
+    // Use direction from reference point (ball for attacker, GK for defender) → end
+    const refX = 200
+    const refY = isAtacante ? 270 : 148
+    const dx = pos.x - refX
+    const dy = pos.y - refY
 
     // Attacker must swipe upward
     if (isAtacante && dy >= 0) { resetSwipe(); return }

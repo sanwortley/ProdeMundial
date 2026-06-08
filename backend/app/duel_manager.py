@@ -109,6 +109,14 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
                     q = message_queues.get(duelo_id, {}).get(user_id)
                     if q:
                         await q.put(data)
+                elif data.get("type") == "leave":
+                    for uid, ws in list(active_duels.get(duelo_id, {}).items()):
+                        if uid != user_id:
+                            try:
+                                await ws.send_json({"type": "rival_left"})
+                            except Exception:
+                                pass
+                    break
             except asyncio.TimeoutError:
                 try:
                     await websocket.send_json({"type": "ping"})

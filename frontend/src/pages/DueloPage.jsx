@@ -8,7 +8,7 @@ import useDuelWebSocket from '../hooks/useDuelWebSocket'
 export default function DueloPage() {
   const { dueloId } = useParams()
   const navigate = useNavigate()
-  const { connected, gameState, shoot, defend } = useDuelWebSocket(dueloId)
+  const { connected, gameState, shoot, defend, sendMessage } = useDuelWebSocket(dueloId)
   const [dueloInfo, setDueloInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -219,7 +219,10 @@ export default function DueloPage() {
             ) : (
               <div className="text-slate-300 text-lg font-black">Empate 🤝</div>
             )}
-            <button onClick={() => navigate(`/groups/${dueloInfo.id_grupo}/fantasy`)}
+            {gameState.rivalLeft && (
+              <p className="text-slate-500 text-xs mt-2">El rival abandonó el duelo</p>
+            )}
+            <button onClick={() => { sendMessage({ type: 'leave' }); navigate(`/groups/${dueloInfo.id_grupo}/fantasy`) }}
               className="mt-3 px-6 py-2.5 bg-gradient-green text-white font-bold rounded-xl">
               Volver
             </button>
