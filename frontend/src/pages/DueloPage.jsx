@@ -177,6 +177,9 @@ export default function DueloPage() {
         {gameState.phase === 'connecting' && (
           <p className="text-slate-400 text-sm">Conectando...</p>
         )}
+        {gameState.phase === 'reconnecting' && (
+          <p className="text-yellow-400 text-sm animate-pulse">Conexión perdida. Reconectando...</p>
+        )}
         {gameState.phase === 'waiting' && (
           <p className="text-slate-400 text-sm animate-pulse">Esperando rival...</p>
         )}

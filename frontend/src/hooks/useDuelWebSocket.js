@@ -53,34 +53,63 @@ export default function useDuelWebSocket(dueloId) {
     const token = localStorage.getItem('token')
     if (!token) return
 
-    const url = `${WS_URL}/ws/duel/${dueloId}?token=${token}`
-    let ws = new WebSocket(url)
-    wsRef.current = ws
+    let reconnectTimer = null
+    let mounted = true
+    let attempts = 0
 
-    ws.onopen = () => {
-      setConnected(true)
-      setGameState((s) => ({ ...s, phase: 'waiting' }))
-    }
+    function connect() {
+      if (!mounted) return
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      handleMessage(data, setGameState, sendMessage)
-      if (onMessageRef.current) {
-        onMessageRef.current(data)
+      const url = `${WS_URL}/ws/duel/${dueloId}?token=${token}`
+      const ws = new WebSocket(url)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        if (!mounted) { ws.close(); return }
+        setConnected(true)
+        attempts = 0
+        setGameState((s) => {
+          if (s.phase === 'reconnecting' || s.phase === 'connecting') return { ...s, phase: 'waiting' }
+          return s
+        })
+      }
+
+      ws.onmessage = (event) => {
+        if (!mounted) return
+        const data = JSON.parse(event.data)
+        handleMessage(data, setGameState, sendMessage)
+        if (onMessageRef.current) {
+          onMessageRef.current(data)
+        }
+      }
+
+      ws.onclose = () => {
+        setConnected(false)
+        if (!mounted) return
+        setGameState((s) => {
+          if (s.phase === 'match_end' || s.phase === 'connecting') return s
+          return { ...s, phase: 'reconnecting' }
+        })
+        const delay = Math.min(1000 * Math.pow(2, attempts), 8000)
+        attempts++
+        reconnectTimer = setTimeout(connect, delay)
+      }
+
+      ws.onerror = () => {
+        ws.close()
       }
     }
 
-    ws.onclose = () => {
-      setConnected(false)
-    }
-
-    ws.onerror = () => {
-      setConnected(false)
-    }
+    connect()
 
     return () => {
-      ws.close()
-      wsRef.current = null
+      mounted = false
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
     }
   }, [dueloId])
 
@@ -156,6 +185,7 @@ function handleMessage(data, setState, sendMessage) {
           es_gol: data.es_gol,
           posicion_atacante: data.posicion_atacante,
           posicion_arquero: data.posicion_arquero,
+          fuerza: data.fuerza,
         },
         golesRetador: data.goles_retador,
         golesRival: data.goles_rival,

@@ -330,8 +330,8 @@ export default function DueloCanvas({
 
       {phase === 'result' && resultado && (
         <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
-          <div className={`px-6 py-3 rounded-xl font-bold text-sm animate-bounce ${resultado.es_gol ? 'bg-soccer-green/20 text-soccer-green border border-soccer-green/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-            {resultado.es_gol ? '⚽ GOL!' : '🧤 Atajó!'}
+          <div className={`px-6 py-3 rounded-xl font-bold text-sm animate-bounce ${resultado.es_gol ? 'bg-soccer-green/20 text-soccer-green border border-soccer-green/30' : resultado.posicion_atacante === 1 && resultado.fuerza > 80 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+            {resultado.es_gol ? '⚽ GOL!' : resultado.posicion_atacante === 1 && resultado.fuerza > 80 ? '🚀 AFUERA!' : '🧤 Atajó!'}
           </div>
         </div>
       )}
@@ -1006,69 +1006,140 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
   if (phase === 'result' && resultado) {
     const atkZone = zones.find(z => z.id === resultado.posicion_atacante)
     const defZone = zones.find(z => z.id === resultado.posicion_arquero)
+    const isMissHigh = !resultado.es_gol && resultado.posicion_atacante === 1 && resultado.fuerza > 80
 
-    // GK dives from center to chosen zone
-    if (defZone) {
-      const ease = animProgress < 0.5
-        ? 2 * animProgress * animProgress
-        : 1 - Math.pow(-2 * animProgress + 2, 2) / 2
-      const diveX = lerp(gkCx, defZone.rx, ease)
-      const diveY = lerp(gkRestY, defZone.ry + 8, ease)
-      const armsOut = 0.8 + ease * 0.6
-      drawGoalkeeper(ctx, diveX, diveY, 1.7, true, armsOut)
-    } else {
+    if (isMissHigh) {
+      // --- Animation: ball flies over the crossbar ---
+      const gkLookUp = Math.min(animProgress * 3, 1)
       drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
-    }
+      ctx.save()
+      ctx.globalAlpha = gkLookUp * 0.15
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 10px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('😮', gkCx, gkRestY - 30 * 1.7)
+      ctx.restore()
 
-    // Ball appears at attacker's zone (no trajectory)
-    if (atkZone) {
-      const ballShow = Math.min(animProgress * 2, 1)
-      const bx = atkZone.rx
-      const by = atkZone.ry - lerp(20, 0, ballShow)
+      const penaltyX = 200
+      const penaltyY = 270
+
+      const arcX = lerp(penaltyX, gkCx, animProgress)
+      const arcY = penaltyY - animProgress * (penaltyY + 100)
+
+      const ballSize = lerp(6, 2, Math.min(animProgress * 2, 1))
+
+      // Trajectory arc line
+      ctx.save()
+      ctx.globalAlpha = 0.3 * (1 - animProgress)
+      ctx.strokeStyle = '#fff'
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([4, 4])
+      ctx.beginPath()
+      ctx.moveTo(penaltyX, penaltyY)
+      for (let t = 0; t <= 1; t += 0.02) {
+        const tx = lerp(penaltyX, gkCx + 40, t)
+        const ty = penaltyY - t * (penaltyY + 100)
+        ctx.lineTo(tx, ty)
+      }
+      ctx.stroke()
+      ctx.restore()
 
       // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.15)'
+      ctx.fillStyle = `rgba(0,0,0,${0.15 * (1 - animProgress)})`
       ctx.beginPath()
-      ctx.ellipse(atkZone.rx, atkZone.ry + 4, 6, 2, 0, 0, Math.PI * 2)
+      ctx.ellipse(arcX + 10, penaltyY - 2, ballSize, ballSize * 0.4, 0, 0, Math.PI * 2)
       ctx.fill()
 
       // Ball
       ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.3)'
-      ctx.shadowBlur = 6
+      const bx = arcX
+      const by = arcY
       ctx.beginPath()
-      ctx.arc(bx, by, 5, 0, Math.PI * 2)
+      ctx.arc(bx, by, ballSize, 0, Math.PI * 2)
       ctx.fillStyle = '#ffffff'
       ctx.fill()
       ctx.strokeStyle = '#888'
       ctx.lineWidth = 0.5
       ctx.stroke()
-
-      // Pentagon details
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2 + now / 400
         ctx.beginPath()
-        ctx.arc(bx + Math.cos(a) * 2, by + Math.sin(a) * 2, 1.2, 0, Math.PI * 2)
+        ctx.arc(bx + Math.cos(a) * (ballSize * 0.4), by + Math.sin(a) * (ballSize * 0.4), ballSize * 0.25, 0, Math.PI * 2)
         ctx.fillStyle = '#222'
         ctx.fill()
       }
       ctx.restore()
 
-      // Net ripple on goal
-      if (resultado.es_gol && animProgress >= 0.3) {
-        const ripple = Math.sin((animProgress - 0.3) * Math.PI * 4) * (1 - animProgress) * 8
-        ctx.strokeStyle = `rgba(255,255,255,${(1 - animProgress) * 0.3})`
-        ctx.lineWidth = 1.5
-        for (let i = 0; i < 3; i++) {
-          const rr = Math.max(0, ripple + i * 6)
+      // AFUERA label
+      if (animProgress >= 0.15) {
+        const labelAlpha = Math.min((animProgress - 0.15) * 5, 1)
+        ctx.save()
+        ctx.globalAlpha = labelAlpha
+        ctx.fillStyle = '#ef4444'
+        ctx.font = `bold ${18 + (1 - animProgress) * 4}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('🚀 AFUERA!', gkCx, gkBottom + 18)
+        ctx.restore()
+      }
+    } else {
+      // GK dives from center to chosen zone
+      if (defZone) {
+        const ease = animProgress < 0.5
+          ? 2 * animProgress * animProgress
+          : 1 - Math.pow(-2 * animProgress + 2, 2) / 2
+        const diveX = lerp(gkCx, defZone.rx, ease)
+        const diveY = lerp(gkRestY, defZone.ry + 8, ease)
+        const armsOut = 0.8 + ease * 0.6
+        drawGoalkeeper(ctx, diveX, diveY, 1.7, true, armsOut)
+      } else {
+        drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
+      }
+
+      if (atkZone) {
+        const ballShow = Math.min(animProgress * 2, 1)
+        const bx = atkZone.rx
+        const by = atkZone.ry - lerp(20, 0, ballShow)
+
+        ctx.fillStyle = 'rgba(0,0,0,0.15)'
+        ctx.beginPath()
+        ctx.ellipse(atkZone.rx, atkZone.ry + 4, 6, 2, 0, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.save()
+        ctx.shadowColor = 'rgba(0,0,0,0.3)'
+        ctx.shadowBlur = 6
+        ctx.beginPath()
+        ctx.arc(bx, by, 5, 0, Math.PI * 2)
+        ctx.fillStyle = '#ffffff'
+        ctx.fill()
+        ctx.strokeStyle = '#888'
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 + now / 400
           ctx.beginPath()
-          ctx.arc(bx, by, rr, 0, Math.PI * 2)
-          ctx.stroke()
+          ctx.arc(bx + Math.cos(a) * 2, by + Math.sin(a) * 2, 1.2, 0, Math.PI * 2)
+          ctx.fillStyle = '#222'
+          ctx.fill()
+        }
+        ctx.restore()
+
+        if (resultado.es_gol && animProgress >= 0.3) {
+          const ripple = Math.sin((animProgress - 0.3) * Math.PI * 4) * (1 - animProgress) * 8
+          ctx.strokeStyle = `rgba(255,255,255,${(1 - animProgress) * 0.3})`
+          ctx.lineWidth = 1.5
+          for (let i = 0; i < 3; i++) {
+            const rr = Math.max(0, ripple + i * 6)
+            ctx.beginPath()
+            ctx.arc(bx, by, rr, 0, Math.PI * 2)
+            ctx.stroke()
+          }
         }
       }
     }
 
-    // Goal/save label (appears after short delay)
+    // Goal/save/miss label (appears after short delay)
     if (animProgress >= 0.15) {
       const labelAlpha = Math.min((animProgress - 0.15) * 5, 1)
       ctx.save()
@@ -1078,7 +1149,11 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       ctx.font = `bold ${18 + (1 - animProgress) * 4}px sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(gol ? '⚽ GOL!' : '🧤 ATAJÓ!', gkCx, gkBottom + 18)
+      if (isMissHigh) {
+        ctx.fillText('🚀 AFUERA!', gkCx, gkBottom + 18)
+      } else {
+        ctx.fillText(gol ? '⚽ GOL!' : '🧤 ATAJÓ!', gkCx, gkBottom + 18)
+      }
       ctx.restore()
     }
   }
