@@ -972,7 +972,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     // GK waiting — slight sway (shown to both)
     const swayX = Math.sin(now / 300) * 3
     const swayY = Math.sin(now / 250) * 1.5
-    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 1, false, 0)
+    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 1.7, false, 0)
 
     if (!selectedGoal) {
       ctx.save()
@@ -999,9 +999,9 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       const diveX = lerp(gkCx, defZone.rx, ease)
       const diveY = lerp(gkRestY, defZone.ry + 8, ease)
       const armsOut = 0.8 + ease * 0.6
-      drawGoalkeeper(ctx, diveX, diveY, 1, true, armsOut)
+      drawGoalkeeper(ctx, diveX, diveY, 1.7, true, armsOut)
     } else {
-      drawGoalkeeper(ctx, gkCx, gkRestY, 1, false, 0)
+      drawGoalkeeper(ctx, gkCx, gkRestY, 1.7, false, 0)
     }
 
     // Ball appears at attacker's zone (no trajectory)
