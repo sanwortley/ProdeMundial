@@ -1044,7 +1044,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         ctx.strokeStyle = `rgba(255,255,255,${(1 - animProgress) * 0.3})`
         ctx.lineWidth = 1.5
         for (let i = 0; i < 3; i++) {
-          const rr = ripple + i * 6
+          const rr = Math.max(0, ripple + i * 6)
           ctx.beginPath()
           ctx.arc(bx, by, rr, 0, Math.PI * 2)
           ctx.stroke()

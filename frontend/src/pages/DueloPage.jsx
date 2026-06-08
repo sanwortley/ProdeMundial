@@ -42,9 +42,31 @@ export default function DueloPage() {
     }
   }
 
+  const soundCacheRef = useRef({})
+
+  useEffect(() => {
+    // Preload all sounds as blobs (avoid 416 range requests)
+    const names = ['whistle', 'goal', 'save', 'shoot', 'crowd', 'win', 'lose']
+    names.forEach(async (n) => {
+      try {
+        const res = await fetch(`/sounds/${n}.mp3`)
+        if (res.ok) {
+          const blob = await res.blob()
+          soundCacheRef.current[n] = URL.createObjectURL(blob)
+        }
+      } catch {}
+    })
+    return () => {
+      Object.values(soundCacheRef.current).forEach(URL.revokeObjectURL)
+      soundCacheRef.current = {}
+    }
+  }, [])
+
   function playSound(name) {
+    const url = soundCacheRef.current[name]
+    if (!url) return
     try {
-      const audio = new Audio(`/sounds/${name}.mp3`)
+      const audio = new Audio(url)
       audio.volume = 0.5
       audio.play().catch(() => {})
     } catch {}
