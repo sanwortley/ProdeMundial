@@ -206,7 +206,7 @@ export default function DueloCanvas({
   }, [])
 
   const handlePointerDown = useCallback((e) => {
-    if (phase !== 'penalty' || selectedGoal !== null || !isAtacante) return
+    if (phase !== 'penalty' || selectedGoal !== null) return
     const pos = getCanvasPos(e)
     if (!pos) return
     swipeStartRef.current = pos
@@ -214,7 +214,7 @@ export default function DueloCanvas({
     setSwipeStart(pos)
     setSwipeCurrent(pos)
     swipeStartTimeRef.current = Date.now()
-  }, [phase, selectedGoal, isAtacante, getCanvasPos])
+  }, [phase, selectedGoal, getCanvasPos])
 
   const handlePointerMove = useCallback((e) => {
     if (!swipeStartRef.current) return
@@ -225,35 +225,41 @@ export default function DueloCanvas({
   }, [getCanvasPos])
 
   const handlePointerUp = useCallback((e) => {
-    if (!swipeStartRef.current || !isAtacante) return
+    if (!swipeStartRef.current) return
     const pos = getCanvasPos(e)
     if (!pos) { resetSwipe(); return }
 
-    const ballX = 200, ballY = 270
-    const dx = pos.x - ballX
-    const dy = pos.y - ballY
-
-    // Dragging downward → miss
-    if (dy >= 0) { resetSwipe(); return }
-
-    // Calculate force from speed
+    // Use swipe direction (start → end) for both roles
+    const sx = swipeStartRef.current.x
+    const sy = swipeStartRef.current.y
+    const dx = pos.x - sx
+    const dy = pos.y - sy
     const dist = Math.hypot(dx, dy)
-    const elapsed = Date.now() - swipeStartTimeRef.current
-    const speed = elapsed > 0 ? dist / elapsed : 0
-    const fuerza = Math.round(Math.min(speed * 100, 100))
 
-    // Determine zone from angle
-    const angleRad = Math.atan2(dx, -dy) // 0 = straight up, neg = left, pos = right
+    // Too short → ignore
+    if (dist < 15) { resetSwipe(); return }
+
+    // Attacker must swipe upward
+    if (isAtacante && dy >= 0) { resetSwipe(); return }
+
+    // Angle: 0° = straight up, negative = left, positive = right
+    const angleRad = Math.atan2(dx, -dy)
     const angleDeg = angleRad * (180 / Math.PI)
     const zone = getZoneFromAngle(angleDeg)
+
+    // Force only matters for attacker
+    const elapsed = Date.now() - swipeStartTimeRef.current
+    const speed = elapsed > 0 ? dist / elapsed : 0
+    const fuerza = isAtacante ? Math.round(Math.min(speed * 100, 100)) : 50
 
     resetSwipe()
 
     if (zone) {
       setSelectedGoal(zone)
-      onShoot?.(zone, fuerza)
+      if (isAtacante) onShoot?.(zone, fuerza)
+      else onDefend?.(zone)
     }
-  }, [isAtacante, onShoot, getCanvasPos])
+  }, [isAtacante, onShoot, onDefend, getCanvasPos])
 
   const resetSwipe = useCallback(() => {
     swipeStartRef.current = null
@@ -261,32 +267,6 @@ export default function DueloCanvas({
     setSwipeStart(null)
     setSwipeCurrent(null)
   }, [])
-
-  const handleCanvasClick = useCallback((e) => {
-    // Only for defender zone-tapping
-    if (phase !== 'penalty' || selectedGoal !== null || isAtacante) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width
-    const y = (e.clientY - rect.top) / rect.height
-    const gkLeft = 60 / 400
-    const gkRight = (400 - 60) / 400
-    const gkTop = 20 / 300
-    const gkBottom = (20 + 140) / 300
-    for (const zone of GOAL_ZONES) {
-      const zx = gkLeft + zone.x * (gkRight - gkLeft)
-      const zy = gkTop + zone.y * (gkBottom - gkTop)
-      const radius = 0.065
-      const dx = x - zx
-      const dy = y - zy
-      if (dx * dx + dy * dy < radius * radius) {
-        setSelectedGoal(zone.id)
-        onDefend?.(zone.id)
-        return
-      }
-    }
-  }, [phase, selectedGoal, isAtacante, onDefend])
 
   return (
     <div className="relative w-full max-w-lg mx-auto">
@@ -299,7 +279,6 @@ export default function DueloCanvas({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={resetSwipe}
-        onClick={handleCanvasClick}
       />
 
       {phase === 'penalty' && (
@@ -320,7 +299,7 @@ export default function DueloCanvas({
           </div>
           <div className="flex items-center justify-between w-full px-2 mt-1">
             <span className="text-[10px] font-bold text-slate-500">
-              {isAtacante ? 'Deslizá hacia el arco' : 'Tocá dónde tirarte'}
+              {isAtacante ? 'Deslizá hacia el arco' : 'Deslizá para atajar'}
             </span>
             <span className={`text-base font-black ${countdown <= 3 ? 'text-red-400' : 'text-slate-300'}`}>
               {countdown}s
@@ -836,46 +815,43 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
 
   // --- Penalty phase ---
   if (phase === 'penalty') {
+    // --- BALL (shown to both) ---
+    const ballX = 200
+    const ballY = 270
+
+    // Ball shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'
+    ctx.beginPath()
+    ctx.ellipse(ballX, ballY + 4, 7, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Ball
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.4)'
+    ctx.shadowBlur = 8
+    ctx.beginPath()
+    ctx.arc(ballX, ballY, 6, 0, Math.PI * 2)
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
+    ctx.strokeStyle = '#888'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + now / 400
+      ctx.beginPath()
+      ctx.arc(ballX + Math.cos(a) * 2.5, ballY + Math.sin(a) * 2.5, 1.5, 0, Math.PI * 2)
+      ctx.fillStyle = '#222'
+      ctx.fill()
+    }
+    ctx.restore()
+
     if (isAtacante) {
-      // --- ATTACKER: ball + swipe arrow ---
-      const ballX = 200
-      const ballY = 270
-
-      // Ball shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.2)'
-      ctx.beginPath()
-      ctx.ellipse(ballX, ballY + 4, 7, 3, 0, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Ball
-      ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.4)'
-      ctx.shadowBlur = 8
-      ctx.beginPath()
-      ctx.arc(ballX, ballY, 6, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffffff'
-      ctx.fill()
-      ctx.strokeStyle = '#888'
-      ctx.lineWidth = 0.5
-      ctx.stroke()
-      // Pentagon details
-      for (let i = 0; i < 5; i++) {
-        const a = (i / 5) * Math.PI * 2 + now / 400
-        ctx.beginPath()
-        ctx.arc(ballX + Math.cos(a) * 2.5, ballY + Math.sin(a) * 2.5, 1.5, 0, Math.PI * 2)
-        ctx.fillStyle = '#222'
-        ctx.fill()
-      }
-      ctx.restore()
-
-      // Swipe arrow (during drag)
+      // --- ATTACKER swipe: arrow from ball + power bar ---
       if (swipeStart && swipeCurrent) {
         const endX = swipeCurrent.x
         const endY = swipeCurrent.y
 
-        // Only draw if dragging upward
         if (endY < ballY) {
-          // Arrow line (dashed)
           ctx.save()
           ctx.strokeStyle = 'rgba(255,255,255,0.6)'
           ctx.lineWidth = 2
@@ -886,7 +862,6 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.stroke()
           ctx.setLineDash([])
 
-          // Arrowhead
           const angle = Math.atan2(endY - ballY, endX - ballX)
           const headLen = 10
           ctx.beginPath()
@@ -896,7 +871,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.lineTo(endX - headLen * Math.cos(angle + 0.4), endY - headLen * Math.sin(angle + 0.4))
           ctx.stroke()
 
-          // Power indicator
+          // Power bar
           const dist = Math.hypot(endX - ballX, endY - ballY)
           const fuerza = Math.min(dist / 2.5, 100)
           const pct = Math.min(fuerza / 80, 1)
@@ -906,8 +881,6 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           const barY = 205
 
           ctx.fillStyle = 'rgba(0,0,0,0.5)'
-          ctx.roundRect?.(barX - 1, barY - 1, barW + 2, barH + 2, 3)
-          ctx.fill()
           ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2)
 
           const color = pct > 1 ? '#ef4444' : pct > 0.7 ? '#facc15' : '#22c55e'
@@ -915,7 +888,6 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           const fillW = Math.min(pct, 1) * barW
           ctx.fillRect(barX + 1, barY + 1, fillW - 2, barH - 2)
 
-          // Power label
           ctx.fillStyle = pct > 1 ? '#ef4444' : '#ffffffa0'
           ctx.font = '9px sans-serif'
           ctx.textAlign = 'left'
@@ -925,7 +897,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         }
       }
 
-      // Selected zone highlight (after shooting)
+      // Selected zone
       if (selectedGoal) {
         const z = zones.find(zn => zn.id === selectedGoal)
         if (z) {
@@ -945,23 +917,67 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         }
       }
     } else {
-      // --- DEFENDER: goal zones (clickable) ---
-      for (const z of zones) {
-        const pulse = 16 + Math.sin(now / 400 + z.id) * 3
-        const alpha = 0.05 + Math.sin(now / 500 + z.id * 0.7) * 0.03
-        const isSelected = selectedGoal === z.id
+      // --- DEFENDER swipe: arrow from GK + zone highlight ---
+      if (swipeStart && swipeCurrent) {
+        const endX = swipeCurrent.x
+        const endY = swipeCurrent.y
+        const gkSX = gkCx
+        const gkSY = gkRestY
 
+        ctx.save()
+        ctx.strokeStyle = 'rgba(234,179,8,0.7)'
+        ctx.lineWidth = 2.5
+        ctx.setLineDash([6, 4])
         ctx.beginPath()
-        ctx.arc(z.rx, z.ry, pulse, 0, Math.PI * 2)
-        ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.2)' : `rgba(255,255,255,${alpha})`
-        ctx.fill()
-        ctx.strokeStyle = isSelected ? '#ffffff' : `rgba(255,255,255,${alpha * 2})`
-        ctx.lineWidth = isSelected ? 2 : 1
+        ctx.moveTo(gkSX, gkSY)
+        ctx.lineTo(endX, endY)
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        const angle = Math.atan2(endY - gkSY, endX - gkSX)
+        const headLen = 10
+        ctx.beginPath()
+        ctx.moveTo(endX, endY)
+        ctx.lineTo(endX - headLen * Math.cos(angle - 0.4), endY - headLen * Math.sin(angle - 0.4))
+        ctx.moveTo(endX, endY)
+        ctx.lineTo(endX - headLen * Math.cos(angle + 0.4), endY - headLen * Math.sin(angle + 0.4))
         ctx.stroke()
 
-        if (!isSelected) {
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 3})`
-          ctx.font = 'bold 11px sans-serif'
+        // Show target zone from angle
+        const dx = endX - gkSX
+        const dy = endY - gkSY
+        const aRad = Math.atan2(dx, -dy)
+        const aDeg = aRad * (180 / Math.PI)
+        const targetZone = getZoneFromAngle(aDeg)
+        if (targetZone) {
+          const tz = zones.find(z => z.id === targetZone)
+          if (tz) {
+            ctx.beginPath()
+            ctx.arc(tz.rx, tz.ry, 20, 0, Math.PI * 2)
+            ctx.fillStyle = 'rgba(234,179,8,0.15)'
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(234,179,8,0.6)'
+            ctx.lineWidth = 2
+            ctx.stroke()
+          }
+        }
+        ctx.restore()
+      }
+
+      // Selected zone
+      if (selectedGoal) {
+        const z = zones.find(zn => zn.id === selectedGoal)
+        if (z) {
+          ctx.beginPath()
+          ctx.arc(z.rx, z.ry, 22, 0, Math.PI * 2)
+          ctx.fillStyle = 'rgba(234,179,8,0.2)'
+          ctx.fill()
+          ctx.strokeStyle = '#eab308'
+          ctx.lineWidth = 2.5
+          ctx.stroke()
+
+          ctx.fillStyle = '#eab308'
+          ctx.font = 'bold 10px sans-serif'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(z.label, z.rx, z.ry)
@@ -981,7 +997,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       ctx.font = '11px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
-      ctx.fillText(isAtacante ? '~ deslizá hacia el arco ~' : '~ tocá el arco ~', gkCx, h - 5)
+      ctx.fillText('~ deslizá para elegir ~', gkCx, h - 5)
       ctx.restore()
     }
   }
