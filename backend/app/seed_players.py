@@ -18,12 +18,12 @@ POSITION_MAP = {
     "Offence": "FWD",
 }
 
-# Position base values (multiplied by age and tier to get final price in $M)
+# Position base values — más realistas (reducidos ~30%)
 BASE_VALUES = {
-    "GK": 12,
-    "DEF": 15,
-    "MID": 22,
-    "FWD": 28,
+    "GK":  8,
+    "DEF": 10,
+    "MID": 14,
+    "FWD": 18,
 }
 
 def _age_factor(age: int) -> float:
@@ -62,13 +62,21 @@ TEAM_TIERS = {
     "Uzbekistan": 4, "Jordan": 4, "Syria": 4, "Lebanon": 4,
 }
 
-# Price multiplier ranges per tier: (min_star, max_star, star_chance, good_chance, filler_chance)
-# Tiers: star (3.5-5.5x), good (2.0-3.5x), regular (0.8-2.0x), filler (0.2-0.8x)
+# Precio máximo por tier de equipo (cap duro, no importa el multiplicador)
+TIER_PRICE_CAP = {
+    1: 160,   # Elite (Argentina, Francia, etc.) — sin límite artificial
+    2: 75,    # Fuertes (Uruguay, Colombia, Senegal, etc.)
+    3: 45,    # Medianos (Ecuador, Argelia, etc.)
+    4: 22,    # Underdogs (Iraq, Cabo Verde, etc.)
+}
+
+# Rangos de multiplicador por nivel dentro de cada tier
+# Tier 1: puede tener estrellas reales | Tiers 2-4: rangos más acotados
 TIER_CONFIG = {
-    1: {"star": 0.20, "good": 0.35, "regular": 0.35, "filler": 0.10},
-    2: {"star": 0.08, "good": 0.25, "regular": 0.42, "filler": 0.25},
-    3: {"star": 0.03, "good": 0.12, "regular": 0.40, "filler": 0.45},
-    4: {"star": 0.01, "good": 0.05, "regular": 0.30, "filler": 0.64},
+    1: {"star": 0.15, "good": 0.35, "regular": 0.40, "filler": 0.10},
+    2: {"star": 0.00, "good": 0.20, "regular": 0.50, "filler": 0.30},
+    3: {"star": 0.00, "good": 0.08, "regular": 0.42, "filler": 0.50},
+    4: {"star": 0.00, "good": 0.00, "regular": 0.25, "filler": 0.75},
 }
 
 def _team_tier(equipo_nacional: str) -> int:
@@ -113,7 +121,8 @@ def _is_superstar(nombre: str) -> bool:
 
 def _tier_mult(team_tier: int = 3, superstar: bool = False) -> float:
     if superstar:
-        return random.uniform(3.5, 5.5)
+        # Solo los verdaderos superstars llegan a rangos altos
+        return random.uniform(3.0, 5.0)
     weights = TIER_CONFIG.get(team_tier, TIER_CONFIG[3])
     r = random.random()
     acc = 0
@@ -122,14 +131,14 @@ def _tier_mult(team_tier: int = 3, superstar: bool = False) -> float:
         acc += prob
         if r < acc:
             if label == "star":
-                return random.uniform(3.5, 5.5)
+                return random.uniform(2.8, 4.5)
             elif label == "good":
-                return random.uniform(2.0, 3.5)
+                return random.uniform(1.8, 2.8)
             elif label == "regular":
-                return random.uniform(0.8, 2.0)
+                return random.uniform(0.7, 1.8)
             else:
-                return random.uniform(0.2, 0.8)
-    return random.uniform(0.2, 0.8)
+                return random.uniform(0.15, 0.7)
+    return random.uniform(0.15, 0.7)
 
 SPECIFIC_POSITIONS = {
     "GK": ["GK"],
@@ -151,9 +160,7 @@ def _random_specific_pos(posicion: str) -> str:
     return random.choices(opts, weights=weights, k=1)[0]
 
 def revalue_all_players(db: Session):
-    """Re-calculate prices for all existing players using team-based pricing tiers.
-    Note: this changes values of players already in fantasy teams, which may
-    affect budget consistency. Recommended: delete prode.db and let it re-seed."""
+    """Re-calculate prices for all existing players using corrected team-based pricing."""
     players = db.query(Jugador).all()
     if not players:
         return
@@ -165,10 +172,15 @@ def revalue_all_players(db: Session):
         team_tier = _team_tier(j.equipo_nacional)
         superstar = _is_superstar(j.nombre)
         tier = _tier_mult(team_tier, superstar)
-        j.valor_inicial = max(1, min(160, round(base * age_mult * tier)))
+        raw_price = round(base * age_mult * tier)
+        # Aplicar cap por tier — los no-superstars de equipos débiles no pueden inflar
+        tier_cap = TIER_PRICE_CAP.get(team_tier, 45)
+        if not superstar:
+            raw_price = min(raw_price, tier_cap)
+        j.valor_inicial = max(1, min(160, raw_price))
         j.posicion_especifica = j.posicion_especifica or _random_specific_pos(j.posicion)
     db.commit()
-    logger.info(f"Revalued {len(players)} players with new team-based pricing tiers")
+    logger.info(f"Revalued {len(players)} players with corrected pricing")
 
 def seed_players(db: Session):
     existing = db.query(Jugador).count()
@@ -216,7 +228,12 @@ def seed_players(db: Session):
             team_tier = _team_tier(team_name)
             superstar = _is_superstar(name)
             tier = _tier_mult(team_tier, superstar)
-            valor = max(1, min(160, round(base * age_mult * tier)))
+            raw_price = round(base * age_mult * tier)
+            # Cap por tier — jugadores de equipos débiles no pueden ser carísimos
+            tier_cap = TIER_PRICE_CAP.get(team_tier, 45)
+            if not superstar:
+                raw_price = min(raw_price, tier_cap)
+            valor = max(1, min(160, raw_price))
 
             db_jugador = Jugador(
                 nombre=name,
