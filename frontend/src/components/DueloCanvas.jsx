@@ -1,21 +1,17 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 
 const GOAL_ZONES = [
-  { id: 1, label: 'SI',  x: 0.25, y: 0.15 },
-  { id: 2, label: 'SD',  x: 0.75, y: 0.15 },
-  { id: 3, label: 'C',   x: 0.50, y: 0.35 },
-  { id: 4, label: 'II',  x: 0.25, y: 0.70 },
-  { id: 5, label: 'ID',  x: 0.75, y: 0.70 },
+  { id: 1, label: 'IZQ', x: 0.20, y: 0.40 },
+  { id: 3, label: 'CEN', x: 0.50, y: 0.40 },
+  { id: 2, label: 'DER', x: 0.80, y: 0.40 },
   { id: 6, label: 'AI',  x: -0.15, y: 0.40 },
   { id: 7, label: 'AD',  x: 1.15, y: 0.40 },
 ]
 
 const MISS_LABELS = {
-  1: '🚀 ARRIBA!',
+  1: '📐 ANCHO!',
   2: '📐 ANCHO!',
-  3: '🚀 ARRIBA!',
-  4: '📐 ANCHO!',
-  5: '📐 ANCHO!',
+  3: '📐 ANCHO!',
   6: '📐 ANCHO!',
   7: '📐 ANCHO!',
 }
@@ -1087,20 +1083,20 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     const atkZone = zones.find(z => z.id === resultado.posicion_atacante)
     const defZone = zones.find(z => z.id === resultado.posicion_arquero)
     const isMiss = !resultado.es_gol && (resultado.posicion_atacante >= 6 || resultado.fuerza > 80)
-    const isSideMiss = isMiss && resultado.posicion_atacante >= 2 && resultado.posicion_atacante !== 3
+    const isSideMiss = isMiss && resultado.posicion_atacante !== 3
 
     if (isMiss) {
       // --- Ball flies wide / over the goal ---
       const penaltyX = 200
       const penaltyY = 270
 
-      const missDir = resultado.posicion_atacante === 1 || resultado.posicion_atacante === 3 ? 'up' : 'side'
+      const missDir = resultado.posicion_atacante === 3 ? 'up' : 'side'
 
       let endX, endY
       if (missDir === 'up') {
         endX = gkCx + 40
         endY = -80
-      } else if (resultado.posicion_atacante === 2 || resultado.posicion_atacante === 5 || resultado.posicion_atacante === 7) {
+      } else if (resultado.posicion_atacante === 2 || resultado.posicion_atacante === 7) {
         endX = w + 60
         endY = gkRestY - 30
       } else {
