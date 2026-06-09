@@ -1,9 +1,11 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 
 const GOAL_ZONES = [
-  { id: 1, label: 'IZQ', x: 0.20, y: 0.40 },
+  { id: 1, label: 'EI', x: 0.10, y: 0.40 },
+  { id: 4, label: 'IZQ', x: 0.25, y: 0.40 },
   { id: 3, label: 'CEN', x: 0.50, y: 0.40 },
-  { id: 2, label: 'DER', x: 0.80, y: 0.40 },
+  { id: 5, label: 'DER', x: 0.75, y: 0.40 },
+  { id: 2, label: 'ED', x: 0.90, y: 0.40 },
   { id: 6, label: 'AI',  x: -0.15, y: 0.40 },
   { id: 7, label: 'AD',  x: 1.15, y: 0.40 },
 ]
@@ -12,6 +14,8 @@ const MISS_LABELS = {
   1: '📐 ANCHO!',
   2: '📐 ANCHO!',
   3: '📐 ANCHO!',
+  4: '📐 ANCHO!',
+  5: '📐 ANCHO!',
   6: '📐 ANCHO!',
   7: '📐 ANCHO!',
 }
@@ -1008,7 +1012,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     ctx.restore()
 
     if (isAtacante) {
-      // --- ATTACKER swipe: arrow from ball + power bar ---
+      // --- ATTACKER swipe: trail effect + power bar ---
       if (swipeStart && swipeCurrent) {
         const dx = swipeCurrent.x - swipeStart.x
         const dy = swipeCurrent.y - swipeStart.y
@@ -1019,24 +1023,19 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           const targetX = ballX + dx * SENSITIVITY
           const targetY = ballY + dy * SENSITIVITY
 
+          // Trail dots from ball toward target
           ctx.save()
-          ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-          ctx.lineWidth = 2
-          ctx.setLineDash([6, 4])
-          ctx.beginPath()
-          ctx.moveTo(ballX, ballY)
-          ctx.lineTo(targetX, targetY)
-          ctx.stroke()
-          ctx.setLineDash([])
-
-          const angle = Math.atan2(targetY - ballY, targetX - ballX)
-          const headLen = 10
-          ctx.beginPath()
-          ctx.moveTo(targetX, targetY)
-          ctx.lineTo(targetX - headLen * Math.cos(angle - 0.4), targetY - headLen * Math.sin(angle - 0.4))
-          ctx.moveTo(targetX, targetY)
-          ctx.lineTo(targetX - headLen * Math.cos(angle + 0.4), targetY - headLen * Math.sin(angle + 0.4))
-          ctx.stroke()
+          for (let t = 0.1; t <= 1; t += 0.1) {
+            const tx = ballX + (targetX - ballX) * t
+            const ty = ballY + (targetY - ballY) * t
+            const alpha = 0.5 * (1 - t)
+            const radius = 2.5 * (1 - t * 0.5)
+            ctx.beginPath()
+            ctx.arc(tx, ty, radius, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`
+            ctx.fill()
+          }
+          ctx.restore()
 
           // Power bar
           const fuerza = Math.min(100, Math.round(20 + (dist / 300) * 80))
@@ -1098,7 +1097,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         }
       }
     } else {
-      // --- DEFENDER swipe: arrow from GK + zone highlight ---
+      // --- DEFENDER swipe: trail from GK + zone highlight ---
       if (swipeStart && swipeCurrent) {
         const dx = swipeCurrent.x - swipeStart.x
         const dy = swipeCurrent.y - swipeStart.y
@@ -1109,24 +1108,19 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         const targetX = gkSX + dx * SENSITIVITY
         const targetY = gkSY + dy * SENSITIVITY
 
+        // Trail dots from GK toward target
         ctx.save()
-        ctx.strokeStyle = 'rgba(234,179,8,0.7)'
-        ctx.lineWidth = 2.5
-        ctx.setLineDash([6, 4])
-        ctx.beginPath()
-        ctx.moveTo(gkSX, gkSY)
-        ctx.lineTo(targetX, targetY)
-        ctx.stroke()
-        ctx.setLineDash([])
-
-        const angle = Math.atan2(targetY - gkSY, targetX - gkSX)
-        const headLen = 10
-        ctx.beginPath()
-        ctx.moveTo(targetX, targetY)
-        ctx.lineTo(targetX - headLen * Math.cos(angle - 0.4), targetY - headLen * Math.sin(angle - 0.4))
-        ctx.moveTo(targetX, targetY)
-        ctx.lineTo(targetX - headLen * Math.cos(angle + 0.4), targetY - headLen * Math.sin(angle + 0.4))
-        ctx.stroke()
+        for (let t = 0.1; t <= 1; t += 0.1) {
+          const tx = gkSX + (targetX - gkSX) * t
+          const ty = gkSY + (targetY - gkSY) * t
+          const alpha = 0.5 * (1 - t)
+          const radius = 2.5 * (1 - t * 0.5)
+          ctx.beginPath()
+          ctx.arc(tx, ty, radius, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(234,179,8,${alpha})`
+          ctx.fill()
+        }
+        ctx.restore()
 
         // Show target zone from angle/closest
         const targetZone = getClosestZone(targetX, targetY, true)
