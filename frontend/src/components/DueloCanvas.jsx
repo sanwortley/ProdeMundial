@@ -266,7 +266,7 @@ export default function DueloCanvas({
     if (dist < 15) { resetSwipe(); return }
 
     const refX = 200
-    const refY = isAtacante ? 270 : 136 // center of goal y=136
+    const refY = isAtacante ? 270 : 148 // GK rest y=148
 
     // Attacker must swipe upward
     if (isAtacante && dy >= 10) { resetSwipe(); return }
