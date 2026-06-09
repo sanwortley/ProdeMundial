@@ -24,12 +24,28 @@ const randItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const lerp = (a, b, t) => a + (b - a) * Math.min(Math.max(t, 0), 1)
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi)
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)]
-const getZoneFromAngle = (deg) => {
-  const a = Math.abs(deg)
-  if (a < 12) return 3              // C
-  if (a < 25) return deg < 0 ? 1 : 2  // SI / SD
-  if (a < 50) return deg < 0 ? 4 : 5  // II / ID
-  return deg < 0 ? 6 : 7              // AI / AD (wide)
+const getClosestZone = (x, y, isGK = false) => {
+  const gkLeft = 60
+  const gkRight = 340
+  const gkTop = 20
+  const gkBottom = 160
+  
+  let minDist = Infinity
+  let closestId = null
+  
+  GOAL_ZONES.forEach(z => {
+    if (isGK && (z.id === 6 || z.id === 7)) return
+    
+    const rx = gkLeft + z.x * (gkRight - gkLeft)
+    const ry = gkTop + z.y * (gkBottom - gkTop)
+    const dist = Math.hypot(x - rx, y - ry)
+    if (dist < minDist) {
+      minDist = dist
+      closestId = z.id
+    }
+  })
+  
+  return closestId
 }
 
 function getScript(ronda, pateadorNombre, pateadorPosicion, retadorJugadores, rivalJugadores) {
@@ -242,27 +258,29 @@ export default function DueloCanvas({
     const pos = getCanvasPos(e)
     if (!pos) { resetSwipe(); return }
 
-    const dist = Math.hypot(pos.x - swipeStartRef.current.x, pos.y - swipeStartRef.current.y)
+    const dx = pos.x - swipeStartRef.current.x
+    const dy = pos.y - swipeStartRef.current.y
+    const dist = Math.hypot(dx, dy)
 
     // Too short → ignore
     if (dist < 15) { resetSwipe(); return }
 
-    // Use direction from reference point (ball for attacker, GK for defender) → end
     const refX = 200
-    const refY = isAtacante ? 270 : 148
-    const dx = pos.x - refX
-    const dy = pos.y - refY
+    const refY = isAtacante ? 270 : 136 // center of goal y=136
 
     // Attacker must swipe upward
-    if (isAtacante && dy >= 0) { resetSwipe(); return }
+    if (isAtacante && dy >= 10) { resetSwipe(); return }
 
-    // Angle: 0° = straight up, negative = left, positive = right
-    const angleRad = Math.atan2(dx, -dy)
-    const angleDeg = angleRad * (180 / Math.PI)
-    const zone = getZoneFromAngle(angleDeg)
+    // Calculate virtual target position
+    const SENSITIVITY = 2.0
+    const targetX = refX + dx * SENSITIVITY
+    const targetY = refY + dy * SENSITIVITY
 
-    // Force only matters for attacker: distance from penalty spot, not speed
-    const fuerza = isAtacante ? Math.round(Math.min(Math.hypot(pos.x - 200, pos.y - 270) / 2.5, 100)) : 50
+    // Find closest zone
+    const zone = getClosestZone(targetX, targetY, !isAtacante)
+
+    // Force/fuerza: based on distance of drag
+    const fuerza = isAtacante ? Math.round(Math.min(dist * 1.2, 100)) : 50
 
     resetSwipe()
 
@@ -870,32 +888,36 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     if (isAtacante) {
       // --- ATTACKER swipe: arrow from ball + power bar ---
       if (swipeStart && swipeCurrent) {
-        const endX = swipeCurrent.x
-        const endY = swipeCurrent.y
+        const dx = swipeCurrent.x - swipeStart.x
+        const dy = swipeCurrent.y - swipeStart.y
+        const dist = Math.hypot(dx, dy)
 
-        if (endY < ballY) {
+        if (dy < 10) {
+          const SENSITIVITY = 2.0
+          const targetX = ballX + dx * SENSITIVITY
+          const targetY = ballY + dy * SENSITIVITY
+
           ctx.save()
           ctx.strokeStyle = 'rgba(255,255,255,0.6)'
           ctx.lineWidth = 2
           ctx.setLineDash([6, 4])
           ctx.beginPath()
           ctx.moveTo(ballX, ballY)
-          ctx.lineTo(endX, endY)
+          ctx.lineTo(targetX, targetY)
           ctx.stroke()
           ctx.setLineDash([])
 
-          const angle = Math.atan2(endY - ballY, endX - ballX)
+          const angle = Math.atan2(targetY - ballY, targetX - ballX)
           const headLen = 10
           ctx.beginPath()
-          ctx.moveTo(endX, endY)
-          ctx.lineTo(endX - headLen * Math.cos(angle - 0.4), endY - headLen * Math.sin(angle - 0.4))
-          ctx.moveTo(endX, endY)
-          ctx.lineTo(endX - headLen * Math.cos(angle + 0.4), endY - headLen * Math.sin(angle + 0.4))
+          ctx.moveTo(targetX, targetY)
+          ctx.lineTo(targetX - headLen * Math.cos(angle - 0.4), targetY - headLen * Math.sin(angle - 0.4))
+          ctx.moveTo(targetX, targetY)
+          ctx.lineTo(targetX - headLen * Math.cos(angle + 0.4), targetY - headLen * Math.sin(angle + 0.4))
           ctx.stroke()
 
           // Power bar
-          const dist = Math.hypot(endX - ballX, endY - ballY)
-          const fuerza = Math.min(dist / 2.5, 100)
+          const fuerza = Math.min(dist * 1.2, 100)
           const pct = Math.min(fuerza / 80, 1)
           const barW = 60
           const barH = 6
@@ -916,6 +938,21 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.textBaseline = 'bottom'
           ctx.fillText(pct > 1 ? '💥 MUY FUERTE!' : 'Potencia', barX, barY - 2)
           ctx.restore()
+
+          // Preview closest zone
+          const targetZone = getClosestZone(targetX, targetY, false)
+          if (targetZone) {
+            const tz = zones.find(z => z.id === targetZone)
+            if (tz) {
+              ctx.beginPath()
+              ctx.arc(tz.rx, tz.ry, 20, 0, Math.PI * 2)
+              ctx.fillStyle = 'rgba(255,255,255,0.15)'
+              ctx.fill()
+              ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+              ctx.lineWidth = 1.5
+              ctx.stroke()
+            }
+          }
         }
       }
 
@@ -941,10 +978,14 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     } else {
       // --- DEFENDER swipe: arrow from GK + zone highlight ---
       if (swipeStart && swipeCurrent) {
-        const endX = swipeCurrent.x
-        const endY = swipeCurrent.y
+        const dx = swipeCurrent.x - swipeStart.x
+        const dy = swipeCurrent.y - swipeStart.y
         const gkSX = gkCx
         const gkSY = gkRestY
+
+        const SENSITIVITY = 2.0
+        const targetX = gkSX + dx * SENSITIVITY
+        const targetY = gkSY + dy * SENSITIVITY
 
         ctx.save()
         ctx.strokeStyle = 'rgba(234,179,8,0.7)'
@@ -952,25 +993,21 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         ctx.setLineDash([6, 4])
         ctx.beginPath()
         ctx.moveTo(gkSX, gkSY)
-        ctx.lineTo(endX, endY)
+        ctx.lineTo(targetX, targetY)
         ctx.stroke()
         ctx.setLineDash([])
 
-        const angle = Math.atan2(endY - gkSY, endX - gkSX)
+        const angle = Math.atan2(targetY - gkSY, targetX - gkSX)
         const headLen = 10
         ctx.beginPath()
-        ctx.moveTo(endX, endY)
-        ctx.lineTo(endX - headLen * Math.cos(angle - 0.4), endY - headLen * Math.sin(angle - 0.4))
-        ctx.moveTo(endX, endY)
-        ctx.lineTo(endX - headLen * Math.cos(angle + 0.4), endY - headLen * Math.sin(angle + 0.4))
+        ctx.moveTo(targetX, targetY)
+        ctx.lineTo(targetX - headLen * Math.cos(angle - 0.4), targetY - headLen * Math.sin(angle - 0.4))
+        ctx.moveTo(targetX, targetY)
+        ctx.lineTo(targetX - headLen * Math.cos(angle + 0.4), targetY - headLen * Math.sin(angle + 0.4))
         ctx.stroke()
 
-        // Show target zone from angle
-        const dx = endX - gkSX
-        const dy = endY - gkSY
-        const aRad = Math.atan2(dx, -dy)
-        const aDeg = aRad * (180 / Math.PI)
-        const targetZone = getZoneFromAngle(aDeg)
+        // Show target zone from angle/closest
+        const targetZone = getClosestZone(targetX, targetY, true)
         if (targetZone) {
           const tz = zones.find(z => z.id === targetZone)
           if (tz) {
