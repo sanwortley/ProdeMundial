@@ -775,7 +775,10 @@ export default function Fantasy() {
                               </>
                             )}
                             {d.estado === 'pending' && soyRetador && (
-                              <span className="text-[10px] text-slate-500 px-2.5 py-1">Esperando...</span>
+                              <button onClick={() => handleCancelDuelo(d.id_duelo)}
+                                className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg hover:bg-red-500/30">
+                                ✕
+                              </button>
                             )}
                           </div>
                         </div>
