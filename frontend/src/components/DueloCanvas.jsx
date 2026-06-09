@@ -89,28 +89,28 @@ function getScript(ronda, pateadorNombre, pateadorPosicion, retadorJugadores, ri
       { text: `${playmaker.nombre} la pisa en tres cuartos...`, dur: 2.5, action: 'dribble', highlights: [plIdx] },
       { text: `${playmaker.nombre} se saca a ${dummy2.nombre} de encima...`, dur: 2.5, action: 'dribble', highlights: [plIdx, d2Idx] },
       { text: `${crosser.nombre} abre a la banda y centra!`, dur: 2.5, action: 'cross', highlights: [cIdx, plIdx, rIdx, r1Idx] },
-      { text: `💥 ${shootName} (${pateadorPosicion}) de palomita!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
+      { text: `💥 ${shootName} (${pateadorPosicion}) define al arco!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
     ],
     // Ronda 3: counter attack
     [
       { text: `${dummy1.nombre} agarra un rebote en el area...`, dur: 2.5, action: 'pass', highlights: [d1Idx, plIdx] },
       { text: `${playmaker.nombre} amaga, enrieda...`, dur: 2.5, action: 'dribble', highlights: [plIdx, r1Idx] },
       { text: `${crosser.nombre} tira el centro al segundo palo!`, dur: 2.5, action: 'cross', highlights: [cIdx, rIdx, r1Idx, plIdx, d1Idx] },
-      { text: `💥 ${shootName} (${pateadorPosicion}) conecta!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
+      { text: `💥 ${shootName} (${pateadorPosicion}) remata de primera!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
     ],
     // Ronda 4: hold-up play
     [
       { text: `${receiver.nombre} recibe de espaldas al arco...`, dur: 2.5, action: 'pass', highlights: [rIdx, pIdx] },
       { text: `${receiver.nombre} aguanta la marca, gira...`, dur: 2.5, action: 'dribble', highlights: [rIdx, d1Idx] },
       { text: `${crosser.nombre} busca el corazon del area!`, dur: 2.5, action: 'cross', highlights: [cIdx, rIdx, plIdx, d1Idx, d2Idx] },
-      { text: `💥 ${shootName} (${pateadorPosicion}) se estira!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
+      { text: `💥 ${shootName} (${pateadorPosicion}) saca el remate!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
     ],
     // Ronda 5: long ball
     [
       { text: `${dummy1.nombre} baja un pelotazo...`, dur: 2.5, action: 'pass', highlights: [d1Idx, plIdx] },
       { text: `${playmaker.nombre} descarga para ${crosser.nombre}...`, dur: 2.5, action: 'pass', highlights: [plIdx, cIdx] },
       { text: `${crosser.nombre} centra al punto penal!`, dur: 2.5, action: 'cross', highlights: [cIdx, rIdx, r1Idx, d1Idx, d2Idx] },
-      { text: `💥 ${shootName} (${pateadorPosicion}) gana de arriba!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
+      { text: `💥 ${shootName} (${pateadorPosicion}) cabecea cruzado!`, dur: 2.5, action: 'header', highlights: [sIdx, rIdx, cIdx] },
     ],
   ]
 
@@ -1146,7 +1146,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     // GK waiting — slight sway (shown to both)
     const swayX = Math.sin(now / 300) * 3
     const swayY = Math.sin(now / 250) * 1.5
-    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 2.2, false, 0, images)
+    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 3.2, false, 0, images)
 
     if (!selectedGoal) {
       ctx.save()
@@ -1187,13 +1187,13 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       }
 
       const gkLookUp = Math.min(animProgress * 3, 1)
-      drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0, images)
+      drawGoalkeeper(ctx, gkCx, gkRestY, 3.2, false, 0, images)
       ctx.save()
       ctx.globalAlpha = gkLookUp * 0.15
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 10px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('😮', gkCx, gkRestY - 30 * 2.2)
+      ctx.fillText('😮', gkCx, gkRestY - 30 * 3.2)
       ctx.restore()
 
       const arcX = lerp(penaltyX, endX, animProgress)
@@ -1265,9 +1265,9 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         const diveX = lerp(gkCx, defZone.rx, ease)
         const diveY = lerp(gkRestY, defZone.ry + 8, ease)
         const armsOut = 0.8 + ease * 0.6
-        drawGoalkeeper(ctx, diveX, diveY, 2.2, true, armsOut, images, defZone.id)
+        drawGoalkeeper(ctx, diveX, diveY, 3.2, true, armsOut, images, defZone.id)
       } else {
-        drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0, images)
+        drawGoalkeeper(ctx, gkCx, gkRestY, 3.2, false, 0, images)
       }
 
       if (atkZone) {
