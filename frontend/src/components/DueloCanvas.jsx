@@ -279,8 +279,9 @@ export default function DueloCanvas({
     // Find closest zone
     const zone = getClosestZone(targetX, targetY, !isAtacante)
 
-    // Force/fuerza: based on distance of drag, safely scaled
-    const fuerza = isAtacante ? Math.min(100, Math.round(40 + (dist / 110) * 35)) : 50
+    // Force/fuerza: based on distance of drag
+    // 225px ≈ desde punto penal hasta arriba del travesaño → fuerza 80
+    const fuerza = isAtacante ? Math.min(100, Math.round(20 + (dist / 300) * 80)) : 50
 
     resetSwipe()
 
@@ -917,7 +918,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.stroke()
 
           // Power bar
-          const fuerza = Math.min(100, Math.round(40 + (dist / 110) * 35))
+          const fuerza = Math.min(100, Math.round(20 + (dist / 300) * 80))
           const pct = fuerza / 80
           const barW = 60
           const barH = 6
