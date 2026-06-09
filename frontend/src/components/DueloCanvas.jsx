@@ -139,6 +139,25 @@ export default function DueloCanvas({
   const countdownRef = useRef(null)
   const scriptLineRef = useRef(0)
   const resultAnimRef = useRef(null)
+
+  // Preload goalkeeper PNGs
+  const gkCenterImg = useRef(null)
+  const gkLeftImg = useRef(null)
+  const gkRightImg = useRef(null)
+
+  useEffect(() => {
+    const img1 = new Image()
+    img1.src = '/images/gk_center.png'
+    gkCenterImg.current = img1
+
+    const img2 = new Image()
+    img2.src = '/images/gk_left.png'
+    gkLeftImg.current = img2
+
+    const img3 = new Image()
+    img3.src = '/images/gk_right.png'
+    gkRightImg.current = img3
+  }, [])
   // Swipe state
   const [swipeStart, setSwipeStart] = useState(null)
   const [swipeCurrent, setSwipeCurrent] = useState(null)
@@ -193,7 +212,12 @@ export default function DueloCanvas({
       drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLineRef)
     } else if (phase === 'penalty') {
       const loop = () => {
-        drawGoal(ctx, w, h, phase, resultado, selectedGoal, 1, isAtacante, swipeStartRef.current, swipeCurrentRef.current)
+        const images = {
+          center: gkCenterImg.current,
+          left: gkLeftImg.current,
+          right: gkRightImg.current,
+        }
+        drawGoal(ctx, w, h, phase, resultado, selectedGoal, 1, isAtacante, swipeStartRef.current, swipeCurrentRef.current, images)
         animRef.current = requestAnimationFrame(loop)
       }
       animRef.current = requestAnimationFrame(loop)
@@ -204,7 +228,12 @@ export default function DueloCanvas({
       const loop = () => {
         const elapsed = Date.now() - startTime
         const progress = Math.min(elapsed / duration, 1)
-        drawGoal(ctx, w, h, phase, resultado, selectedGoal, progress, isAtacante)
+        const images = {
+          center: gkCenterImg.current,
+          left: gkLeftImg.current,
+          right: gkRightImg.current,
+        }
+        drawGoal(ctx, w, h, phase, resultado, selectedGoal, progress, isAtacante, null, null, images)
         if (progress < 1) {
           resultAnimRef.current = requestAnimationFrame(loop)
         }
@@ -432,10 +461,10 @@ function drawPitch(ctx, w, h) {
   ctx.fill()
 
   ctx.beginPath()
-  ctx.arc(cx, m + 36, 16, -Math.PI * 0.4, Math.PI * 0.4)
+  ctx.arc(cx, m + 36, 16, 0.34 * Math.PI, 0.66 * Math.PI)
   ctx.stroke()
   ctx.beginPath()
-  ctx.arc(cx, h - m - 36, 16, Math.PI * 0.6, Math.PI * 1.4)
+  ctx.arc(cx, h - m - 36, 16, 1.34 * Math.PI, 1.66 * Math.PI)
   ctx.stroke()
 
   const cr = 7
@@ -517,130 +546,169 @@ function drawPlayer(ctx, x, y, jerseyColor, isHighlight, shirtLabel) {
 // ---------------------------------------------------------------------------
 // SCENE-AWARE PLAYER POSITIONS (dynamic, driven by script)
 // ---------------------------------------------------------------------------
+function getPlayerBasePos(i, w, h) {
+  const cx = w / 2
+  const cy = h / 2
+  const basePositions = [
+    // Attacking team (Blue): starts at top, attacks downward (vertical layout spread out)
+    { x: cx - 130, y: cy - 70 }, // Defender Left (0)
+    { x: cx - 45,  y: cy - 80 }, // Defender Center-Left (1)
+    { x: cx + 45,  y: cy - 80 }, // Defender Center-Right (2)
+    { x: cx + 130, y: cy - 70 }, // Defender Right (3)
+    { x: cx - 90,  y: cy - 20 }, // Midfielder Left (4)
+    { x: cx,       y: cy - 30 }, // Midfielder Center (5)
+    { x: cx + 90,  y: cy - 20 }, // Midfielder Right (6)
+    { x: cx - 110, y: cy + 40 }, // Forward Left (7)
+    { x: cx,       y: cy + 50 }, // Forward Center (8)
+    { x: cx + 110, y: cy + 40 }, // Forward Right (9)
+
+    // Defending team (Red): starts at bottom, defends upward
+    { x: cx - 120, y: cy + 80 }, // Defender Left (10)
+    { x: cx - 40,  y: cy + 90 }, // Defender Center-Left (11)
+    { x: cx + 40,  y: cy + 90 }, // Defender Center-Right (12)
+    { x: cx + 120, y: cy + 80 }, // Defender Right (13)
+    { x: cx - 80,  y: cy + 30 }, // Midfielder Left (14)
+    { x: cx,       y: cy + 20 }, // Midfielder Center (15)
+    { x: cx + 80,  y: cy + 30 }, // Midfielder Right (16)
+    { x: cx - 50,  y: cy - 40 }, // Forward Left (17)
+    { x: cx + 50,  y: cy - 40 }  // Forward Right (18)
+  ]
+  return basePositions[i] || { x: cx, y: cy }
+}
+
 function getPlayerPositions(w, h, t, totalDur, lineIdx, scriptAction, highlights = []) {
   const cx = w / 2
   const cy = h / 2
-  const lineStart = lineIdx * 2.5
-  const progLine = clamp((t - lineStart) / 2.5, 0, 1)
-  const overall = clamp(t / totalDur, 0, 1)
+  const progLine = clamp((t - (lineIdx * 2.5)) / 2.5, 0, 1)
 
-  function pos(startX, startY, endX, endY, wobble = 1) {
+  const pIdx = highlights[0] !== undefined ? highlights[0] : 4
+  const rIdx = highlights[1] !== undefined ? highlights[1] : 7
+  const plIdx = highlights[0] !== undefined ? highlights[0] : 5
+  const r1Idx = highlights[1] !== undefined ? highlights[1] : 7
+  const cIdx = highlights[0] !== undefined ? highlights[0] : 8
+  const f1Idx = highlights[1] !== undefined ? highlights[1] : 7
+  const f2Idx = highlights[2] !== undefined ? highlights[2] : 9
+  const sIdx = highlights[0] !== undefined ? highlights[0] : 9
+
+  // Get ball position for dynamic tracking
+  const ball = getBallPos(t, totalDur, w, h, lineIdx, scriptAction, highlights)
+
+  // 2. Generate final positions
+  const allPos = Array.from({ length: 19 }, (_, i) => {
+    const base = getPlayerBasePos(i, w, h)
+    
+    // Small breathing wobble for inactive players
+    const wobbleX = Math.sin(t * 1.5 + i * 2) * 2
+    const wobbleY = Math.cos(t * 1.3 + i * 3) * 1.5
+    
+    if (scriptAction === 'pass') {
+      if (i === pIdx) {
+        // Passer stands near ball start, moves slightly forward to kick
+        return {
+          x: base.x + 8 * Math.sin(progLine * Math.PI * 0.5),
+          y: base.y + 5 * progLine
+        }
+      }
+      if (i === rIdx) {
+        // Receiver runs to meet the ball!
+        return {
+          x: lerp(base.x - 15, base.x, progLine),
+          y: lerp(base.y - 10, base.y, progLine)
+        }
+      }
+      // Opponent midfielder (15) moves to close down passing lane
+      if (i === 15) {
+        return {
+          x: base.x + lerp(0, -10, progLine),
+          y: base.y + lerp(0, -10, progLine)
+        }
+      }
+    }
+    
+    if (scriptAction === 'look') {
+      if (i === plIdx) {
+        // Playmaker holds the ball
+        return {
+          x: base.x + wobbleX,
+          y: base.y + wobbleY
+        }
+      }
+      // Runner runs forward into space
+      if (i === r1Idx) {
+        return {
+          x: base.x + wobbleX,
+          y: base.y + 15 * progLine
+        }
+      }
+    }
+    
+    if (scriptAction === 'dribble') {
+      if (i === plIdx) {
+        // Playmaker runs with the ball
+        return {
+          x: base.x + 12 * progLine,
+          y: base.y + 20 * progLine
+        }
+      }
+      // Opponent midfielder (15) runs to close down playmaker
+      if (i === 15) {
+        return {
+          x: lerp(base.x, base.x + 10, progLine),
+          y: lerp(base.y, base.y - 15, progLine)
+        }
+      }
+    }
+    
+    if (scriptAction === 'cross') {
+      if (i === cIdx) {
+        // Winger runs down the flank with the ball before crossing
+        const side = (base.x > cx) ? 1 : -1
+        return {
+          x: base.x + side * 20 * progLine,
+          y: base.y + 25 * progLine
+        }
+      }
+      if (i === f1Idx || i === f2Idx) {
+        // Forwards rush into the box for the cross
+        return {
+          x: lerp(base.x, cx + (i === f1Idx ? -20 : 20), progLine),
+          y: lerp(base.y, cy + 85, progLine)
+        }
+      }
+      // Opponent defenders (11, 12) track back into the box to defend
+      if (i === 11 || i === 12) {
+        return {
+          x: lerp(base.x, cx + (i === 11 ? -15 : 15), progLine),
+          y: lerp(base.y, cy + 90, progLine)
+        }
+      }
+    }
+    
+    if (scriptAction === 'header') {
+      if (i === sIdx) {
+        // Shooter moves to the ball and jumps for header
+        const jumpY = -12 * Math.sin(progLine * Math.PI)
+        return {
+          x: cx + jumpY * 0.2,
+          y: cy + 85 + jumpY
+        }
+      }
+      // Opponent defenders (11, 12) jump to block
+      if (i === 11 || i === 12) {
+        const jumpY = -8 * Math.sin(progLine * Math.PI)
+        return {
+          x: base.x + (i === 11 ? -5 : 5),
+          y: cy + 90 + jumpY
+        }
+      }
+    }
+    
+    // Inactive player stays in zone with breathing wobble
     return {
-      x: lerp(startX, endX, overall) + Math.sin(t * 1.1 + startX * 0.1) * 4 * wobble,
-      y: lerp(startY, endY, overall) + Math.cos(t * 0.9 + startY * 0.1) * 3 * wobble,
+      x: base.x + wobbleX,
+      y: base.y + wobbleY
     }
-  }
-
-  const baseAtkY = cy - 80
-  const baseDefY = cy + 80
-
-  const atkDef = [
-    pos(cx - 50, baseAtkY, cx - 40, cy + 60),
-    pos(cx - 20, baseAtkY + 5, cx - 15, cy + 62),
-    pos(cx + 20, baseAtkY + 5, cx + 15, cy + 62),
-    pos(cx + 50, baseAtkY, cx + 40, cy + 60),
-  ]
-  const atkMid = [
-    pos(cx - 35, baseAtkY + 35, cx - 20, cy + 20),
-    pos(cx, baseAtkY + 40, cx, cy + 25),
-    pos(cx + 35, baseAtkY + 35, cx + 20, cy + 20),
-  ]
-  const atkFwd = [
-    pos(cx - 30, baseAtkY + 75, cx - 15, cy - 5),
-    pos(cx, baseAtkY + 80, cx, cy),
-    pos(cx + 30, baseAtkY + 75, cx + 15, cy - 5),
-  ]
-
-  const defDef = [
-    pos(cx - 45, baseDefY, cx - 35, cy - 55),
-    pos(cx - 15, baseDefY + 5, cx - 10, cy - 58),
-    pos(cx + 15, baseDefY + 5, cx + 10, cy - 58),
-    pos(cx + 45, baseDefY, cx + 35, cy - 55),
-  ]
-  const defMid = [
-    pos(cx - 30, baseDefY - 35, cx - 15, cy - 20),
-    pos(cx, baseDefY - 40, cx + 5, cy - 22),
-    pos(cx + 30, baseDefY - 35, cx + 15, cy - 20),
-  ]
-  const defFwd = [
-    pos(cx - 18, baseDefY - 75, cx - 8, cy + 5),
-    pos(cx + 18, baseDefY - 75, cx + 8, cy + 5),
-  ]
-
-  const allPos = [...atkDef, ...atkMid, ...atkFwd, ...defDef, ...defMid, ...defFwd]
-
-  // Dynamic offsets based on script action and highlights
-  let offsetPlayers = []
-
-  if (scriptAction === 'pass') {
-    // Two players close together, ball between them
-    const [aIdx = 4, bIdx = 7] = highlights
-    const dist = 15 * Math.sin(progLine * Math.PI)
-    offsetPlayers = [
-      { idx: aIdx, dx: -dist * 0.5, dy: 0 },
-      { idx: bIdx, dx: dist * 0.5, dy: 0 },
-    ]
-    // Runners in behind
-    if (highlights.length > 2) {
-      offsetPlayers.push({ idx: highlights[2], dx: 0, dy: -5 * progLine })
-    }
-  }
-
-  else if (scriptAction === 'look') {
-    // Playmaker looks up, runners go forward
-    const [plIdx = 5, r1Idx = 7] = highlights
-    offsetPlayers = [
-      { idx: plIdx, dx: 0, dy: -3 * Math.sin(progLine * Math.PI) },
-      { idx: r1Idx, dx: 0, dy: -8 * progLine },
-    ]
-    if (highlights.length > 2) {
-      offsetPlayers.push({ idx: highlights[2], dx: 0, dy: -8 * progLine })
-    }
-  }
-
-  else if (scriptAction === 'dribble') {
-    // Playmaker moves forward with ball, defender closes
-    const [plIdx = 5, defIdx] = highlights
-    offsetPlayers = [
-      { idx: plIdx, dx: 0, dy: -10 * progLine },
-    ]
-    if (highlights.length > 1 && defIdx !== undefined) {
-      offsetPlayers.push({ idx: defIdx, dx: 0, dy: 8 * progLine })
-    }
-  }
-
-  else if (scriptAction === 'cross') {
-    // Winger goes wide and crosses, forwards and defenders attack the ball
-    const [cIdx = 8, f1Idx = 7, f2Idx = 9, d1Idx = 0, d2Idx = 3] = highlights
-    const widePush = 20 * progLine
-    offsetPlayers = [
-      { idx: cIdx, dx: widePush, dy: -5 * progLine },
-      { idx: f1Idx, dx: -5, dy: -10 * progLine },
-      { idx: f2Idx !== undefined ? f2Idx : f1Idx, dx: 5, dy: -10 * progLine },
-    ]
-    // Defenders track back into box
-    if (d1Idx !== undefined) offsetPlayers.push({ idx: d1Idx, dx: 0, dy: -5 * progLine })
-    if (d2Idx !== undefined) offsetPlayers.push({ idx: d2Idx, dx: 0, dy: -5 * progLine })
-  }
-
-  else if (scriptAction === 'header') {
-    // Striker jumps for header, support runners
-    const [sIdx = 9, sup1Idx = 7, sup2Idx = 8] = highlights
-    const jumpY = -12 * Math.sin(progLine * Math.PI)
-    offsetPlayers = [
-      { idx: sIdx, dx: 0, dy: jumpY },
-    ]
-    if (sup1Idx !== undefined) offsetPlayers.push({ idx: sup1Idx, dx: -3, dy: -5 * progLine })
-    if (sup2Idx !== undefined) offsetPlayers.push({ idx: sup2Idx, dx: 3, dy: -5 * progLine })
-  }
-
-  // Apply offsets
-  for (const o of offsetPlayers) {
-    if (allPos[o.idx]) {
-      allPos[o.idx].x += o.dx
-      allPos[o.idx].y += o.dy
-    }
-  }
+  })
 
   const highlightSet = new Set(highlights)
 
@@ -656,48 +724,62 @@ function getPlayerPositions(w, h, t, totalDur, lineIdx, scriptAction, highlights
 // ---------------------------------------------------------------------------
 // BALL POSITION (driven by script action)
 // ---------------------------------------------------------------------------
-function getBallPos(t, totalDur, w, h, lineIdx, scriptAction) {
+function getBallPos(t, totalDur, w, h, lineIdx, scriptAction, highlights = []) {
   const cx = w / 2
   const cy = h / 2
   const lineStart = lineIdx * 2.5
   const prog = clamp((t - lineStart) / 2.5, 0, 1)
   const s = (a, b, p) => lerp(a, b, p)
 
+  const pIdx = highlights[0] !== undefined ? highlights[0] : 4
+  const rIdx = highlights[1] !== undefined ? highlights[1] : 7
+  const plIdx = highlights[0] !== undefined ? highlights[0] : 5
+  const cIdx = highlights[0] !== undefined ? highlights[0] : 8
+  const sIdx = highlights[0] !== undefined ? highlights[0] : 9
+
   if (scriptAction === 'pass') {
     // Ball travels between two players
-    const x1 = cx - 10, y1 = cy - 25
-    const x2 = cx - 15, y2 = cy + 10
+    const pPos = getPlayerBasePos(pIdx, w, h)
+    const rPos = getPlayerBasePos(rIdx, w, h)
     return {
-      x: s(x1, x2, prog) + Math.sin(t * 3 + lineIdx) * 2,
-      y: s(y1, y2, prog) - Math.sin(prog * Math.PI) * 8 + Math.cos(t * 2) * 2,
+      x: s(pPos.x, rPos.x, prog) + Math.sin(t * 3 + lineIdx) * 2,
+      y: s(pPos.y, rPos.y, prog) - Math.sin(prog * Math.PI) * 8 + Math.cos(t * 2) * 2,
     }
   }
 
-  if (scriptAction === 'look' || scriptAction === 'dribble') {
-    // Ball at playmaker's feet, moving forward
+  if (scriptAction === 'look') {
+    const plPos = getPlayerBasePos(plIdx, w, h)
     return {
-      x: cx + 5 + Math.sin(t * 1.5) * 4,
-      y: s(cy, cy - 8, prog) + Math.sin(t * 1.8 + lineIdx) * 3,
+      x: plPos.x + 3 + Math.sin(t * 1.5) * 2,
+      y: plPos.y + 3 + Math.cos(t * 1.8) * 1.5,
+    }
+  }
+
+  if (scriptAction === 'dribble') {
+    const plPos = getPlayerBasePos(plIdx, w, h)
+    return {
+      x: plPos.x + 2 + Math.sin(t * 2.5) * 2,
+      y: plPos.y + 2 + Math.cos(t * 2.8) * 1.5,
     }
   }
 
   if (scriptAction === 'cross') {
-    // Ball arcs from flank into the box
-    const side = (lineIdx % 2 === 0) ? 1 : -1
-    const sx = cx + side * 40, sy = cy - 15
-    const ex = cx - side * 5, ey = cy + 40
+    const cPos = getPlayerBasePos(cIdx, w, h)
+    const targetX = cx
+    const targetY = cy + 90
     return {
-      x: s(sx, ex, prog) + Math.sin(t * 2) * 3,
-      y: s(sy, ey, prog) - Math.sin(prog * Math.PI) * 14 + Math.cos(t * 1.5) * 2,
+      x: s(cPos.x, targetX, prog),
+      y: s(cPos.y, targetY, prog) - Math.sin(prog * Math.PI) * 18,
     }
   }
 
   if (scriptAction === 'header') {
-    // Ball at penalty spot with bounce
-    const bounce = Math.sin(prog * Math.PI * 2) * Math.max(1 - prog, 0) * 4
+    const sPos = getPlayerBasePos(sIdx, w, h)
+    const targetX = cx + (Math.sin(lineIdx * 5) * 30)
+    const targetY = h - 12
     return {
-      x: cx + Math.sin(t * 2 + lineIdx) * 2,
-      y: cy + 45 + bounce,
+      x: s(sPos.x, targetX, prog),
+      y: s(sPos.y, targetY, prog),
     }
   }
 
@@ -739,7 +821,7 @@ function drawNarration(ctx, w, h, animRef, scriptRef, scriptStartRef, scriptLine
     drawPlayer(ctx, p.x, p.y, p.color, p.isHighlight)
   }
 
-  const ball = getBallPos(t, totalDur, w, h, lineIdx, action)
+  const ball = getBallPos(t, totalDur, w, h, lineIdx, action, highlights)
 
   // ball shadow
   ctx.fillStyle = 'rgba(0,0,0,0.15)'
@@ -800,7 +882,7 @@ function drawWaiting(ctx, w, h) {
 // ---------------------------------------------------------------------------
 // GOAL / PENALTY — natural, no lines, GK dives, swipe for attacker
 // ---------------------------------------------------------------------------
-function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, isAtacante = false, swipeStart = null, swipeCurrent = null) {
+function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, isAtacante = false, swipeStart = null, swipeCurrent = null, images = {}) {
   const gkLeft = 60
   const gkRight = w - 60
   const gkTop = 20
@@ -1064,7 +1146,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     // GK waiting — slight sway (shown to both)
     const swayX = Math.sin(now / 300) * 3
     const swayY = Math.sin(now / 250) * 1.5
-    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 2.2, false, 0)
+    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 2.2, false, 0, images)
 
     if (!selectedGoal) {
       ctx.save()
@@ -1105,7 +1187,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       }
 
       const gkLookUp = Math.min(animProgress * 3, 1)
-      drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0)
+      drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0, images)
       ctx.save()
       ctx.globalAlpha = gkLookUp * 0.15
       ctx.fillStyle = '#fff'
@@ -1183,9 +1265,9 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         const diveX = lerp(gkCx, defZone.rx, ease)
         const diveY = lerp(gkRestY, defZone.ry + 8, ease)
         const armsOut = 0.8 + ease * 0.6
-        drawGoalkeeper(ctx, diveX, diveY, 2.2, true, armsOut)
+        drawGoalkeeper(ctx, diveX, diveY, 2.2, true, armsOut, images, defZone.id)
       } else {
-        drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0)
+        drawGoalkeeper(ctx, gkCx, gkRestY, 2.2, false, 0, images)
       }
 
       if (atkZone) {
@@ -1254,9 +1336,47 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
 // ---------------------------------------------------------------------------
 // GOALKEEPER FIGURE
 // ---------------------------------------------------------------------------
-function drawGoalkeeper(ctx, x, y, scale = 1, isDiving = false, armSpread = 0.8) {
-  ctx.save()
+function drawGoalkeeper(ctx, x, y, scale = 1, isDiving = false, armSpread = 0.8, images = {}, defZoneId = null) {
   const s = scale
+
+  // Select the appropriate goalkeeper sprite image based on diving state and target zone
+  let img = images.center
+  if (isDiving) {
+    if (defZoneId === 1 || defZoneId === 4 || defZoneId === 6) {
+      img = images.left
+    } else if (defZoneId === 2 || defZoneId === 5 || defZoneId === 7) {
+      img = images.right
+    } else if (defZoneId === 3) {
+      img = images.center
+    } else {
+      // Fallback coordinate check if no zone ID is provided
+      if (x < 195) {
+        img = images.left
+      } else if (x > 205) {
+        img = images.right
+      } else {
+        img = images.center
+      }
+    }
+  }
+
+  // Draw PNG sprite if fully loaded, otherwise fall back to vector representation
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.save()
+    // Realistic shadow under the goalie sprite
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'
+    ctx.beginPath()
+    ctx.ellipse(x, y + 8 * s, 10 * s, 2.8 * s, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Render the sprite centered at x, bottom-aligned at y + 8 * s
+    const imgSize = 36 * s
+    ctx.drawImage(img, x - imgSize / 2, y + 8 * s - imgSize, imgSize, imgSize)
+    ctx.restore()
+    return
+  }
+
+  ctx.save()
   const aSpread = armSpread
 
   // Shadow
