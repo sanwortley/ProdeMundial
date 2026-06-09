@@ -661,21 +661,23 @@ function getPlayerPositions(w, h, t, totalDur, lineIdx, scriptAction, highlights
     
     if (scriptAction === 'cross') {
       if (i === cIdx) {
-        // Winger runs down the flank with the ball before crossing
-        const side = (base.x > cx) ? 1 : -1
+        // Winger runs deep down their respective flank
+        const isRight = (base.x >= cx)
+        const targetWingerX = isRight ? w - 45 : 45
+        const targetWingerY = cy + 70
         return {
-          x: base.x + side * 20 * progLine,
-          y: base.y + 25 * progLine
+          x: lerp(base.x, targetWingerX, progLine),
+          y: lerp(base.y, targetWingerY, progLine)
         }
       }
       if (i === f1Idx || i === f2Idx) {
-        // Forwards rush into the box for the cross
+        // Forwards rush into the center of the box to receive the cross
         return {
           x: lerp(base.x, cx + (i === f1Idx ? -20 : 20), progLine),
           y: lerp(base.y, cy + 85, progLine)
         }
       }
-      // Opponent defenders (11, 12) track back into the box to defend
+      // Opponent defenders (11, 12) track back into the box to mark attackers
       if (i === 11 || i === 12) {
         return {
           x: lerp(base.x, cx + (i === 11 ? -15 : 15), progLine),
@@ -686,14 +688,14 @@ function getPlayerPositions(w, h, t, totalDur, lineIdx, scriptAction, highlights
     
     if (scriptAction === 'header') {
       if (i === sIdx) {
-        // Shooter moves to the ball and jumps for header
+        // Shooter moves directly to the landing zone and jumps for header
         const jumpY = -12 * Math.sin(progLine * Math.PI)
         return {
           x: cx + jumpY * 0.2,
           y: cy + 85 + jumpY
         }
       }
-      // Opponent defenders (11, 12) jump to block
+      // Opponent defenders (11, 12) jump to block/challenge
       if (i === 11 || i === 12) {
         const jumpY = -8 * Math.sin(progLine * Math.PI)
         return {
@@ -756,30 +758,41 @@ function getBallPos(t, totalDur, w, h, lineIdx, scriptAction, highlights = []) {
   }
 
   if (scriptAction === 'dribble') {
+    // Ball stays attached to the dribbling playmaker
     const plPos = getPlayerBasePos(plIdx, w, h)
     return {
-      x: plPos.x + 2 + Math.sin(t * 2.5) * 2,
-      y: plPos.y + 2 + Math.cos(t * 2.8) * 1.5,
+      x: plPos.x + 12 * prog + 2 + Math.sin(t * 2.5) * 1.5,
+      y: plPos.y + 20 * prog + 2 + Math.cos(t * 2.8) * 1.0,
     }
   }
 
   if (scriptAction === 'cross') {
+    // Ball crosses in a high realistic arc from deep wing to the center of the penalty box
     const cPos = getPlayerBasePos(cIdx, w, h)
+    const isRight = (cPos.x >= cx)
+    const endWingerX = isRight ? w - 45 : 45
+    const endWingerY = cy + 70
+
+    const startX = endWingerX
+    const startY = endWingerY
     const targetX = cx
-    const targetY = cy + 90
+    const targetY = cy + 85
+
     return {
-      x: s(cPos.x, targetX, prog),
-      y: s(cPos.y, targetY, prog) - Math.sin(prog * Math.PI) * 18,
+      x: s(startX, targetX, prog),
+      y: s(startY, targetY, prog) - Math.sin(prog * Math.PI) * 45,
     }
   }
 
   if (scriptAction === 'header') {
-    const sPos = getPlayerBasePos(sIdx, w, h)
+    // Shot/Header: ball flies from the center of the box to the goal
+    const startX = cx
+    const startY = cy + 85
     const targetX = cx + (Math.sin(lineIdx * 5) * 30)
     const targetY = h - 12
     return {
-      x: s(sPos.x, targetX, prog),
-      y: s(sPos.y, targetY, prog),
+      x: s(startX, targetX, prog),
+      y: s(startY, targetY, prog),
     }
   }
 
