@@ -556,53 +556,49 @@ def _calcular_resultado(
     tipo_disparo: str = 'penalty',
     pos_ini_arquero: str = 'centro'
 ) -> bool:
-    FUERZA_MAX = 80  # above this → miss (too strong)
+    FUERZA_MAX = 95  # above this → miss (too overpowered)
     if pos_atk is None or pos_atk == 0 or fuerza > FUERZA_MAX:
-        return False          # attacker timed out / no choice / too strong → no goal
+        return False
     if pos_atk >= 6:
-        return False          # wide zone → always miss
+        return False
     if pos_def is None or pos_def == 0:
-        return True           # defender timed out / no choice → automatic goal
+        return True
 
-    # Define zones by side
     left_zones = {1, 4}
     right_zones = {2, 5}
-    
+
     def get_side(zone_id):
         if zone_id in left_zones: return 'izquierda'
         if zone_id in right_zones: return 'derecha'
         return 'centro'
-        
+
     atk_side = get_side(pos_atk)
     def_side = get_side(pos_def)
 
-    # 1. Base save chance if guessed correctly
+    # Force factor: 1 at fuerza=0 (very weak), 0 at fuerza=FUERZA_MAX (very strong)
+    # Higher = goalkeeper has more time to react = more likely to save
+    ff = max(0.0, (FUERZA_MAX - fuerza) / FUERZA_MAX)
+
+    # 1. Same zone: goalkeeper guessed correctly
     if pos_atk == pos_def:
-        # If goalkeeper started on opposite side of the dive/shot
         if pos_ini_arquero == 'derecha' and def_side == 'izquierda':
-            # Hard to reach opposite side (50% chance of scoring/goal despite guessing correctly)
-            return random.random() < 0.50
+            save_chance = 0.25 + ff * 0.50
         elif pos_ini_arquero == 'izquierda' and def_side == 'derecha':
-            # Hard to reach opposite side (50% chance of scoring/goal despite guessing correctly)
-            return random.random() < 0.50
+            save_chance = 0.25 + ff * 0.50
         else:
-            # Guessed correctly and normal distance → 100% save
-            return False
+            save_chance = 0.55 + ff * 0.40
+        # save_chance ranges from 0.55–0.95 (normal) or 0.25–0.75 (opposite side)
+        return random.random() >= save_chance
 
-    # 2. Save chance if guessed incorrectly (pos_atk != pos_def)
-    # Outside the area shots are harder to score (GK has more time, so can save even if guessed wrong)
+    # 2. Different zones: goalkeeper guessed wrong, but fuerza gives a chance to recover
     if tipo_disparo == 'fuera_area':
-        # 40% chance of saving even if guessed wrong
-        if random.random() < 0.40:
-            return False
-            
-    # Costado shots: slightly more difficult/random for attacker
-    if tipo_disparo in ('costado_izq', 'costado_der'):
-        # 15% chance of missing/saved due to tight angle
-        if random.random() < 0.15:
-            return False
+        save_chance = 0.20 + ff * 0.40  # 0.20–0.60
+    elif tipo_disparo in ('costado_izq', 'costado_der'):
+        save_chance = 0.12 + ff * 0.30  # 0.12–0.42
+    else:  # penalty
+        save_chance = 0.08 + ff * 0.20  # 0.08–0.28
 
-    return True
+    return random.random() >= save_chance
 
 
 async def broadcast(duelo_id: int, message: dict):

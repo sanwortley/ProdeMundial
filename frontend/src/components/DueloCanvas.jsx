@@ -391,13 +391,13 @@ export default function DueloCanvas({
           <div className={`px-6 py-3 rounded-xl font-bold text-sm animate-bounce ${
             resultado.es_gol
               ? 'bg-soccer-green/20 text-soccer-green border border-soccer-green/30'
-              : resultado.posicion_atacante >= 6 || resultado.fuerza > 80
+              : resultado.posicion_atacante >= 6 || resultado.fuerza > 95
                 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                 : 'bg-red-500/20 text-red-400 border border-red-500/30'
           }`}>
             {resultado.es_gol
               ? '⚽ GOL!'
-              : resultado.posicion_atacante >= 6 || resultado.fuerza > 80
+              : resultado.posicion_atacante >= 6 || resultado.fuerza > 95
                 ? (MISS_LABELS[resultado.posicion_atacante] || '🚀 AFUERA!')
                 : '🧤 Atajó!'}
           </div>
@@ -1040,7 +1040,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
 
           // Power bar
           const fuerza = Math.min(100, Math.round(20 + (dist / 300) * 80))
-          const pct = fuerza / 80
+          const pct = fuerza / 95
           const barW = 60
           const barH = 6
           const barX = (w - barW) / 2
@@ -1049,16 +1049,16 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.fillStyle = 'rgba(0,0,0,0.5)'
           ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2)
 
-          const color = fuerza > 80 ? '#ef4444' : pct > 0.7 ? '#facc15' : '#22c55e'
+          const color = fuerza > 95 ? '#ef4444' : pct > 0.7 ? '#facc15' : '#22c55e'
           ctx.fillStyle = color
           const fillW = Math.min(pct, 1) * barW
           ctx.fillRect(barX + 1, barY + 1, fillW - 2, barH - 2)
 
-          ctx.fillStyle = fuerza > 80 ? '#ef4444' : '#ffffffa0'
+          ctx.fillStyle = fuerza > 95 ? '#ef4444' : '#ffffffa0'
           ctx.font = '9px sans-serif'
           ctx.textAlign = 'left'
           ctx.textBaseline = 'bottom'
-          ctx.fillText(fuerza > 80 ? '💥 MUY FUERTE!' : 'Potencia', barX, barY - 2)
+          ctx.fillText(fuerza > 95 ? '💥 MUY FUERTE!' : 'Potencia', barX, barY - 2)
           ctx.restore()
 
           // Preview closest zone
@@ -1187,7 +1187,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
   if (phase === 'result' && resultado) {
     const atkZone = zones.find(z => z.id === resultado.posicion_atacante)
     const defZone = zones.find(z => z.id === resultado.posicion_arquero)
-    const isMiss = !resultado.es_gol && (resultado.posicion_atacante >= 6 || resultado.fuerza > 80)
+    const isMiss = !resultado.es_gol && (resultado.posicion_atacante >= 6 || resultado.fuerza > 95)
     const isSideMiss = isMiss && resultado.posicion_atacante !== 3
 
     if (isMiss) {
