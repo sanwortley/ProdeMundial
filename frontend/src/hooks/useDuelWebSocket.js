@@ -209,11 +209,12 @@ function handleMessage(data, setState, sendMessage) {
     case 'rival_disconnected':
       setState((s) => {
         if (s.phase === 'match_end') return s
-        return { ...s, phase: 'waiting' }
+        return { ...s, phase: 'waiting', disconnectTimeout: data.timeout || 60 }
       })
       break
 
     case 'rival_reconnected':
+      setState((s) => ({ ...s, phase: s.phase === 'waiting' ? 'penalty' : s.phase, disconnectTimeout: 0 }))
       break
 
     case 'rival_left':

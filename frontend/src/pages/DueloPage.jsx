@@ -12,6 +12,7 @@ export default function DueloPage() {
   const [dueloInfo, setDueloInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [disconnectCountdown, setDisconnectCountdown] = useState(0)
   const audioRefs = useRef({})
 
   useEffect(() => {
@@ -38,6 +39,22 @@ export default function DueloPage() {
       return () => clearTimeout(t)
     }
   }, [gameState.phase, gameState.walkover])
+
+  // Countdown timer for rival disconnect
+  useEffect(() => {
+    if (gameState.phase === 'waiting' && gameState.disconnectTimeout > 0) {
+      setDisconnectCountdown(gameState.disconnectTimeout)
+      const interval = setInterval(() => {
+        setDisconnectCountdown((c) => {
+          if (c <= 1) return 0
+          return c - 1
+        })
+      }, 1000)
+      return () => clearInterval(interval)
+    } else {
+      setDisconnectCountdown(0)
+    }
+  }, [gameState.phase, gameState.disconnectTimeout])
 
   async function loadDuelo() {
     try {
@@ -202,7 +219,26 @@ export default function DueloPage() {
           <p className="text-yellow-400 text-sm animate-pulse">Conexión perdida. Reconectando...</p>
         )}
         {gameState.phase === 'waiting' && (
-          <p className="text-slate-400 text-sm animate-pulse">Esperando rival...</p>
+          <div>
+            {disconnectCountdown > 0 ? (
+              <>
+                <p className="text-yellow-400 text-sm font-bold">⚠ Rival desconectado</p>
+                <p className="text-slate-400 text-xs mt-1">Esperando reconexión...</p>
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
+                    <span className="text-yellow-400 font-bold text-sm">{disconnectCountdown}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">segundos</span>
+                </div>
+                <button onClick={() => sendMessage({ type: 'leave' })}
+                  className="mt-3 px-4 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30">
+                  Salir (abandonar)
+                </button>
+              </>
+            ) : (
+              <p className="text-slate-400 text-sm animate-pulse">Esperando rival...</p>
+            )}
+          </div>
         )}
         {gameState.phase === 'animation' && (
           <p className="text-slate-400 text-sm animate-pulse">⚽ Partido en juego...</p>
