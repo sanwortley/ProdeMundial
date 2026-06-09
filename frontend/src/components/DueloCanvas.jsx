@@ -279,8 +279,8 @@ export default function DueloCanvas({
     // Find closest zone
     const zone = getClosestZone(targetX, targetY, !isAtacante)
 
-    // Force/fuerza: based on distance of drag
-    const fuerza = isAtacante ? Math.round(Math.min(dist * 1.2, 100)) : 50
+    // Force/fuerza: based on distance of drag, safely scaled
+    const fuerza = isAtacante ? Math.min(100, Math.round(40 + (dist / 110) * 35)) : 50
 
     resetSwipe()
 
@@ -917,8 +917,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.stroke()
 
           // Power bar
-          const fuerza = Math.min(dist * 1.2, 100)
-          const pct = Math.min(fuerza / 80, 1)
+          const fuerza = Math.min(100, Math.round(40 + (dist / 110) * 35))
+          const pct = fuerza / 80
           const barW = 60
           const barH = 6
           const barX = (w - barW) / 2
@@ -927,16 +927,16 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
           ctx.fillStyle = 'rgba(0,0,0,0.5)'
           ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2)
 
-          const color = pct > 1 ? '#ef4444' : pct > 0.7 ? '#facc15' : '#22c55e'
+          const color = fuerza > 80 ? '#ef4444' : pct > 0.7 ? '#facc15' : '#22c55e'
           ctx.fillStyle = color
           const fillW = Math.min(pct, 1) * barW
           ctx.fillRect(barX + 1, barY + 1, fillW - 2, barH - 2)
 
-          ctx.fillStyle = pct > 1 ? '#ef4444' : '#ffffffa0'
+          ctx.fillStyle = fuerza > 80 ? '#ef4444' : '#ffffffa0'
           ctx.font = '9px sans-serif'
           ctx.textAlign = 'left'
           ctx.textBaseline = 'bottom'
-          ctx.fillText(pct > 1 ? '💥 MUY FUERTE!' : 'Potencia', barX, barY - 2)
+          ctx.fillText(fuerza > 80 ? '💥 MUY FUERTE!' : 'Potencia', barX, barY - 2)
           ctx.restore()
 
           // Preview closest zone
