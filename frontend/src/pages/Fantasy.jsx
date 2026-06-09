@@ -593,8 +593,8 @@ export default function Fantasy() {
                   </div>
                   {team.jugadores.length === 11 && (
                     <div className="mt-3 bg-soccer-green/10 border border-soccer-green/20 rounded-xl p-3 text-center">
-                      <p className="text-xs font-bold text-soccer-green">Equipo confirmado para {team.fecha}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">Los puntos se sumarán automáticamente cuando se jueguen los partidos</p>
+                      <p className="text-xs font-bold text-soccer-green">⚽ Equipo listo para Duelos — {team.fecha}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">Usá este equipo para retar a otros jugadores en la pestaña Partidos</p>
                     </div>
                   )}
                 </div>

@@ -27,21 +27,16 @@ BASE_VALUES = {
 }
 
 def _age_factor(age: int) -> float:
-    if age < 20:
-        return 0.55
-    elif age < 23:
-        return 0.75
-    elif age < 26:
-        return 0.9
-    elif age < 30:
+    if age < 21:
+        return 0.85
+    elif age <= 29:
         return 1.0
-    elif age < 33:
-        return 0.8
+    elif age <= 33:
+        return 0.85
     else:
-        return 0.55
+        return 0.65
 
 # Team strength tiers for realistic pricing
-# Tier 1: Elite contenders, Tier 2: Strong, Tier 3: Decent, Tier 4: Underdogs
 TEAM_TIERS = {
     "Argentina": 1, "France": 1, "Brazil": 1, "England": 1, "Spain": 1,
     "Germany": 1, "Netherlands": 1, "Portugal": 1, "Italy": 1,
@@ -62,83 +57,94 @@ TEAM_TIERS = {
     "Uzbekistan": 4, "Jordan": 4, "Syria": 4, "Lebanon": 4,
 }
 
-# Precio máximo por tier de equipo (cap duro, no importa el multiplicador)
-TIER_PRICE_CAP = {
-    1: 160,   # Elite (Argentina, Francia, etc.) — sin límite artificial
-    2: 75,    # Fuertes (Uruguay, Colombia, Senegal, etc.)
-    3: 45,    # Medianos (Ecuador, Argelia, etc.)
-    4: 22,    # Underdogs (Iraq, Cabo Verde, etc.)
-}
-
-# Rangos de multiplicador por nivel dentro de cada tier
-# Tier 1: puede tener estrellas reales | Tiers 2-4: rangos más acotados
-TIER_CONFIG = {
-    1: {"star": 0.15, "good": 0.35, "regular": 0.40, "filler": 0.10},
-    2: {"star": 0.00, "good": 0.20, "regular": 0.50, "filler": 0.30},
-    3: {"star": 0.00, "good": 0.08, "regular": 0.42, "filler": 0.50},
-    4: {"star": 0.00, "good": 0.00, "regular": 0.25, "filler": 0.75},
-}
-
 def _team_tier(equipo_nacional: str) -> int:
     return TEAM_TIERS.get(equipo_nacional, 3)
 
-# Known global superstars who should be expensive regardless of national team strength
+# Exact market values for world-class superstars
 SUPERSTARS = {
-    "Kylian Mbappé", "Kylian Mbappe", "Erling Haaland", "Erling Braut Haaland",
-    "Vinícius Júnior", "Vinicius Junior", "Jude Bellingham",
-    "Harry Kane", "Jamal Musiala", "Florian Wirtz",
-    "Kevin De Bruyne", "Mohamed Salah", "Robert Lewandowski",
-    "Antoine Griezmann", "Bukayo Saka", "Phil Foden", "Declan Rice",
-    "Federico Valverde", "Rodri", "Rodrigo Hernández",
-    "Lamine Yamal", "Nico Williams", "Pedri", "Pablo Gavi",
-    "William Saliba", "Aurélien Tchouaméni", "Eduardo Camavinga",
-    "Randal Kolo Muani", "Ousmane Dembélé",
-    "Jamie Gittens", "Karim Adeyemi",
-    "Joshua Kimmich", "Antonio Rüdiger", "Kai Havertz",
-    "Thibaut Courtois", "Rodrygo", "Endrick", "Raphinha",
-    "Gabriel Martinelli", "Marquinhos", "Alisson", "Alisson Becker",
-    "Ederson", "Victor Osimhen", "Ademola Lookman",
-    "Achraf Hakimi", "Hakim Ziyech", "Youssef En-Nesyri",
-    "Rasmus Højlund", "Rasmus Hojlund", "Christian Eriksen",
-    "Khvicha Kvaratskhelia", "Lautaro Martínez", "Lautaro Martinez",
-    "Lionel Messi", "Paulo Dybala", "Neymar", "Richarlison",
-    "Bruno Fernandes", "Bernardo Silva", "Diogo Jota",
-    "Rúben Dias", "Ruben Dias", "João Cancelo", "Joao Cancelo",
-    "Rafael Leão", "Rafael Leao", "Virgil van Dijk", "Frenkie de Jong",
-    "Memphis Depay", "Xavi Simons", "Cody Gakpo",
-    "Mike Maignan", "Gianluigi Donnarumma",
-    "Trent Alexander-Arnold", "Cole Palmer", "Marcus Rashford",
-    "Darwin Núñez", "Darwin Nunez", "Ronald Araújo", "Ronald Araujo",
-    "Gabriel Jesus", "Bruno Guimarães", "Lucas Paquetá",
-    "James Rodríguez", "James Rodriguez", "Luis Díaz", "Luis Diaz",
-    "Sadio Mané", "Sadio Mane", "Sergei Milinković-Savić",
-    "Sergej Milinkovic-Savic", "Dusan Vlahović", "Dusan Vlahovic",
-    "Luka Modrić", "Luka Modric", "Mateo Kovačić", "Mateo Kovacic",
+    # Absolute Elite forwards
+    "Kylian Mbappé": 150, "Kylian Mbappe": 150, "Erling Haaland": 145, "Erling Braut Haaland": 145,
+    "Vinícius Júnior": 140, "Vinicius Junior": 140, "Harry Kane": 110, "Lamine Yamal": 120,
+    "Mohamed Salah": 105, "Robert Lewandowski": 75, "Lionel Messi": 85, "Cristiano Ronaldo": 70,
+    "Neymar": 75, "Lautaro Martínez": 110, "Lautaro Martinez": 110, "Bukayo Saka": 120,
+    "Phil Foden": 115, "Antoine Griezmann": 75, "Rafael Leão": 95, "Rafael Leao": 95,
+    "Rodrygo": 100, "Luis Díaz": 85, "Luis Diaz": 85, "Julián Álvarez": 90, "Julian Alvarez": 90,
+    # Elite midfielders
+    "Jude Bellingham": 135, "Florian Wirtz": 125, "Jamal Musiala": 120, "Rodri": 130, 
+    "Rodrigo Hernández": 130, "Kevin De Bruyne": 90, "Federico Valverde": 110, 
+    "Declan Rice": 100, "Cole Palmer": 105, "Bruno Fernandes": 85, "Bernardo Silva": 80,
+    "Frenkie de Jong": 80, "Martin Ødegaard": 110, "Martin Odegaard": 110, "Pedri": 85,
+    "Alexis Mac Allister": 80, "Enzo Fernández": 75, "Enzo Fernandez": 75,
+    "Luka Modrić": 55, "Luka Modric": 55, "Paulo Dybala": 60,
+    # Elite defenders
+    "William Saliba": 95, "Rúben Dias": 85, "Ruben Dias": 85, "Virgil van Dijk": 75,
+    "Ronald Araújo": 80, "Ronald Araujo": 80, "Trent Alexander-Arnold": 75,
+    "Achraf Hakimi": 70, "Antonio Rüdiger": 70, "Antonio Rudiger": 70,
+    # Elite goalkeepers
+    "Emiliano Martínez": 65, "Emiliano Martinez": 65, "Thibaut Courtois": 70,
+    "Alisson Becker": 60, "Alisson": 60, "Ederson": 60, "Marc-André ter Stegen": 60,
+    "Marc-Andre ter Stegen": 60, "Mike Maignan": 60, "Gianluigi Donnarumma": 60,
 }
 
-def _is_superstar(nombre: str) -> bool:
-    return nombre.strip() in SUPERSTARS
+# Famous international stars who command a high market premium
+STARS = {
+    "Marcus Rashford", "Kai Havertz", "Bruno Guimarães", "Bruno Guimaraes", "Darwin Núñez", "Darwin Nunez",
+    "Ousmane Dembélé", "Ousmane Dembele", "Xavi Simons", "Cody Gakpo", "Leroy Sané", "Leroy Sane",
+    "Kingsley Coman", "Gabriel Martinelli", "Gabriel Jesus", "Richarlison", "Heung-min Son", "Son Heung-min",
+    "Victor Osimhen", "Ademola Lookman", "Alexander Isak", "Dušan Vlahović", "Dusan Vlahovic", "Alvaro Morata",
+    "Álvaro Morata", "Joshua Kimmich", "Leon Goretzka", "Ilkay Gündogan", "Ilkay Gundogan", "Aurélien Tchouaméni",
+    "Aurelien Tchouameni", "Eduardo Camavinga", "Warren Zaïre-Emery", "Warren Zaire-Emery", "Teun Koopmeiners",
+    "James Maddison", "Douglas Luiz", "João Neves", "Joao Neves", "João Palhinha", "Joao Palhinha", "Vitinha",
+    "Nicolò Barella", "Nicolo Barella", "Alessandro Bastoni", "Federico Dimarco", "Theo Hernández", "Theo Hernandez",
+    "Micky van de Ven", "Josko Gvardiol", "Cristian Romero", "Gabriel Magalhães", "Gabriel Magalhaes", "Éder Militão",
+    "Eder Militao", "Bremer", "Manuel Akanji", "Jules Koundé", "Jules Kounde", "Dayot Upamecano", "John Stones",
+    "Kyle Walker", "Jeremie Frimpong", "Grimaldo", "Alejandro Grimaldo", "Pedro Porro", "Diogo Costa", "Jan Oblak",
+    "Yassine Bounou", "Gregor Kobel", "Guglielmo Vicario", "Jordan Pickford", "Unai Simón", "Unai Simon", "David Raya"
+}
 
-def _tier_mult(team_tier: int = 3, superstar: bool = False) -> float:
-    if superstar:
-        # Solo los verdaderos superstars llegan a rangos altos
-        return random.uniform(3.0, 5.0)
-    weights = TIER_CONFIG.get(team_tier, TIER_CONFIG[3])
-    r = random.random()
-    acc = 0
-    for label, prob in [("star", weights["star"]), ("good", weights["good"]),
-                         ("regular", weights["regular"]), ("filler", weights["filler"])]:
-        acc += prob
-        if r < acc:
-            if label == "star":
-                return random.uniform(2.8, 4.5)
-            elif label == "good":
-                return random.uniform(1.8, 2.8)
-            elif label == "regular":
-                return random.uniform(0.7, 1.8)
-            else:
-                return random.uniform(0.15, 0.7)
-    return random.uniform(0.15, 0.7)
+def calculate_player_value(name: str, posicion: str, team_name: str, dob: datetime) -> int:
+    name_clean = name.strip()
+    
+    # 1. Direct Superstar check
+    if name_clean in SUPERSTARS:
+        return SUPERSTARS[name_clean]
+        
+    # 2. Star check
+    is_star = name_clean in STARS
+    
+    current_year = datetime.utcnow().year
+    age = current_year - (dob.year if dob else current_year)
+    age_mult = _age_factor(age)
+    
+    if is_star:
+        if posicion == "FWD":
+            base_star = random.randint(55, 68)
+        elif posicion == "MID":
+            base_star = random.randint(50, 62)
+        elif posicion == "DEF":
+            base_star = random.randint(40, 52)
+        else: # GK
+            base_star = random.randint(35, 45)
+        raw_price = round(base_star * (0.9 + 0.1 * age_mult))
+        return max(20, min(80, raw_price))
+        
+    # 3. Regular player valuation by national team tier and position
+    team_tier = _team_tier(team_name)
+    tier_position_values = {
+        1: {"FWD": (22, 28), "MID": (18, 24), "DEF": (14, 18), "GK": (10, 14)},
+        2: {"FWD": (15, 20), "MID": (12, 16), "DEF": (9, 12), "GK": (7, 10)},
+        3: {"FWD": (8, 12), "MID": (6, 9), "DEF": (5, 7), "GK": (4, 6)},
+        4: {"FWD": (3, 5), "MID": (2.5, 4), "DEF": (2, 3), "GK": (1, 2)},
+    }
+    
+    tier_vals = tier_position_values.get(team_tier, tier_position_values[3])
+    pos_range = tier_vals.get(posicion, (6, 9))
+    base_val = random.uniform(pos_range[0], pos_range[1])
+    
+    raw_price = round(base_val * age_mult)
+    raw_price += random.choice([-1, 0, 1])
+    
+    return max(1, raw_price)
 
 SPECIFIC_POSITIONS = {
     "GK": ["GK"],
@@ -164,20 +170,8 @@ def revalue_all_players(db: Session):
     players = db.query(Jugador).all()
     if not players:
         return
-    current_year = datetime.utcnow().year
     for j in players:
-        age = current_year - (j.fecha_nacimiento.year if j.fecha_nacimiento else current_year)
-        base = BASE_VALUES.get(j.posicion, 10)
-        age_mult = _age_factor(age)
-        team_tier = _team_tier(j.equipo_nacional)
-        superstar = _is_superstar(j.nombre)
-        tier = _tier_mult(team_tier, superstar)
-        raw_price = round(base * age_mult * tier)
-        # Aplicar cap por tier — los no-superstars de equipos débiles no pueden inflar
-        tier_cap = TIER_PRICE_CAP.get(team_tier, 45)
-        if not superstar:
-            raw_price = min(raw_price, tier_cap)
-        j.valor_inicial = max(1, min(160, raw_price))
+        j.valor_inicial = calculate_player_value(j.nombre, j.posicion, j.equipo_nacional, j.fecha_nacimiento)
         j.posicion_especifica = j.posicion_especifica or _random_specific_pos(j.posicion)
     db.commit()
     logger.info(f"Revalued {len(players)} players with corrected pricing")
@@ -222,18 +216,7 @@ def seed_players(db: Session):
                     dob = datetime.strptime(dob_str[:10], "%Y-%m-%d")
                 except ValueError:
                     pass
-            age = current_year - (dob.year if dob else current_year)
-            base = BASE_VALUES.get(pos, 10)
-            age_mult = _age_factor(age)
-            team_tier = _team_tier(team_name)
-            superstar = _is_superstar(name)
-            tier = _tier_mult(team_tier, superstar)
-            raw_price = round(base * age_mult * tier)
-            # Cap por tier — jugadores de equipos débiles no pueden ser carísimos
-            tier_cap = TIER_PRICE_CAP.get(team_tier, 45)
-            if not superstar:
-                raw_price = min(raw_price, tier_cap)
-            valor = max(1, min(160, raw_price))
+            valor = calculate_player_value(name, pos, team_name, dob)
 
             db_jugador = Jugador(
                 nombre=name,
@@ -249,3 +232,4 @@ def seed_players(db: Session):
 
     db.commit()
     logger.info(f"Seeded {players_created} players from football-data.org")
+

@@ -7,8 +7,6 @@ from ..database import get_db
 from ..models import Partido, Usuario
 from ..auth import get_current_user
 from ..utils import recalcular_puntos_grupo
-from ..sync_service import _update_fantasy_points
-from ..routes.fantasy_h2h_routes import resolve_h2h_for_fecha
 
 router = APIRouter(tags=["admin"])
 
@@ -74,7 +72,7 @@ def simulate_fecha(
 
     db.commit()
 
-    # Recalculate prediction points for affected groups
+    # Recalculate prediction points (Prode) for affected groups
     from ..models import Prediccion
     groups = db.query(Prediccion.id_grupo).filter(
         Prediccion.id_partido.in_([p.id_partido for p in partidos])
@@ -84,13 +82,7 @@ def simulate_fecha(
     for g_id in affected_groups:
         recalcular_puntos_grupo(db, g_id)
 
-    # Update fantasy points
-    for p in partidos:
-        _update_fantasy_points(db, p)
-
-    # Resolve H2H
-    for g_id in affected_groups:
-        resolve_h2h_for_fecha(db, g_id, fecha)
+    # Fantasy: NO se actualizan puntos aquí — el Fantasy solo funciona para Duelos
 
     return SimulateResult(
         fecha=fecha,
