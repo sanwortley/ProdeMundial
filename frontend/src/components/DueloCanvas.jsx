@@ -129,6 +129,8 @@ export default function DueloCanvas({
   onDefend,
   retadorJugadores,
   rivalJugadores,
+  tipoDisparo = 'penalty',
+  posIniArquero = 'centro',
 }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
@@ -217,7 +219,7 @@ export default function DueloCanvas({
           left: gkLeftImg.current,
           right: gkRightImg.current,
         }
-        drawGoal(ctx, w, h, phase, resultado, selectedGoal, 1, isAtacante, swipeStartRef.current, swipeCurrentRef.current, images)
+        drawGoal(ctx, w, h, phase, resultado, selectedGoal, 1, isAtacante, swipeStartRef.current, swipeCurrentRef.current, images, tipoDisparo, posIniArquero)
         animRef.current = requestAnimationFrame(loop)
       }
       animRef.current = requestAnimationFrame(loop)
@@ -233,7 +235,7 @@ export default function DueloCanvas({
           left: gkLeftImg.current,
           right: gkRightImg.current,
         }
-        drawGoal(ctx, w, h, phase, resultado, selectedGoal, progress, isAtacante, null, null, images)
+        drawGoal(ctx, w, h, phase, resultado, selectedGoal, progress, isAtacante, null, null, images, tipoDisparo, posIniArquero)
         if (progress < 1) {
           resultAnimRef.current = requestAnimationFrame(loop)
         }
@@ -248,7 +250,7 @@ export default function DueloCanvas({
       if (animRef.current) cancelAnimationFrame(animRef.current)
       if (resultAnimRef.current) cancelAnimationFrame(resultAnimRef.current)
     }
-  }, [phase, resultado, ronda, pateadorNombre, pateadorPosicion, selectedGoal, retadorJugadores, rivalJugadores, isAtacante])
+  }, [phase, resultado, ronda, pateadorNombre, pateadorPosicion, selectedGoal, retadorJugadores, rivalJugadores, isAtacante, tipoDisparo, posIniArquero])
 
   const getCanvasPos = useCallback((e) => {
     const canvas = canvasRef.current
@@ -290,8 +292,8 @@ export default function DueloCanvas({
     // Too short → ignore
     if (dist < 15) { resetSwipe(); return }
 
-    const refX = 200
-    const refY = isAtacante ? 270 : 148 // GK rest y=148
+    const refX = tipoDisparo === 'costado_izq' ? 120 : tipoDisparo === 'costado_der' ? 280 : 200
+    const refY = tipoDisparo === 'fuera_area' ? 285 : 270
 
     // Attacker must swipe upward
     if (isAtacante && dy >= 10) { resetSwipe(); return }
@@ -315,7 +317,7 @@ export default function DueloCanvas({
       if (isAtacante) onShoot?.(zone, fuerza)
       else onDefend?.(zone)
     }
-  }, [isAtacante, onShoot, onDefend, getCanvasPos])
+  }, [isAtacante, onShoot, onDefend, getCanvasPos, tipoDisparo])
 
   const resetSwipe = useCallback(() => {
     swipeStartRef.current = null
@@ -895,13 +897,21 @@ function drawWaiting(ctx, w, h) {
 // ---------------------------------------------------------------------------
 // GOAL / PENALTY — natural, no lines, GK dives, swipe for attacker
 // ---------------------------------------------------------------------------
-function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, isAtacante = false, swipeStart = null, swipeCurrent = null, images = {}) {
-  const gkLeft = 60
-  const gkRight = w - 60
-  const gkTop = 20
-  const gkBottom = gkTop + 140
+function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, isAtacante = false, swipeStart = null, swipeCurrent = null, images = {}, tipoDisparo = 'penalty', posIniArquero = 'centro') {
+  const td = (resultado && resultado.tipo_disparo) ? resultado.tipo_disparo : tipoDisparo
+  const pia = (resultado && resultado.pos_ini_arquero) ? resultado.pos_ini_arquero : posIniArquero
+
+  const isOutside = (td === 'fuera_area')
+  const gkLeft = isOutside ? 85 : 60
+  const gkRight = isOutside ? w - 85 : w - 60
+  const gkTop = isOutside ? 35 : 20
+  const gkBottom = isOutside ? gkTop + 95 : gkTop + 140
   const gkCx = (gkLeft + gkRight) / 2
   const gkRestY = gkBottom - 12
+
+  // Goalkeeper starting position offset
+  const goalieRestX = pia === 'izquierda' ? gkCx - 45 : pia === 'derecha' ? gkCx + 45 : gkCx
+  const goalieScale = isOutside ? 2.2 : 3.2
 
   // Pitch background
   ctx.fillStyle = '#0a3d1a'
@@ -968,8 +978,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
   // --- Penalty phase ---
   if (phase === 'penalty') {
     // --- BALL (shown to both) ---
-    const ballX = 200
-    const ballY = 270
+    const ballX = td === 'costado_izq' ? 120 : td === 'costado_der' ? 280 : 200
+    const ballY = td === 'fuera_area' ? 285 : 270
 
     // Ball shadow
     ctx.fillStyle = 'rgba(0,0,0,0.2)'
@@ -1092,7 +1102,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       if (swipeStart && swipeCurrent) {
         const dx = swipeCurrent.x - swipeStart.x
         const dy = swipeCurrent.y - swipeStart.y
-        const gkSX = gkCx
+        const gkSX = goalieRestX
         const gkSY = gkRestY
 
         const SENSITIVITY = 2.0
@@ -1159,7 +1169,7 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     // GK waiting — slight sway (shown to both)
     const swayX = Math.sin(now / 300) * 3
     const swayY = Math.sin(now / 250) * 1.5
-    drawGoalkeeper(ctx, gkCx + swayX, gkRestY + swayY, 3.2, false, 0, images)
+    drawGoalkeeper(ctx, goalieRestX + swayX, gkRestY + swayY, goalieScale, false, 0, images)
 
     if (!selectedGoal) {
       ctx.save()
@@ -1182,8 +1192,8 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
 
     if (isMiss) {
       // --- Ball flies wide / over the goal ---
-      const penaltyX = 200
-      const penaltyY = 270
+      const penaltyX = td === 'costado_izq' ? 120 : td === 'costado_der' ? 280 : 200
+      const penaltyY = td === 'fuera_area' ? 285 : 270
 
       const missDir = resultado.posicion_atacante === 3 ? 'up' : 'side'
 
@@ -1200,13 +1210,13 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
       }
 
       const gkLookUp = Math.min(animProgress * 3, 1)
-      drawGoalkeeper(ctx, gkCx, gkRestY, 3.2, false, 0, images)
+      drawGoalkeeper(ctx, goalieRestX, gkRestY, goalieScale, false, 0, images)
       ctx.save()
       ctx.globalAlpha = gkLookUp * 0.15
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 10px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('😮', gkCx, gkRestY - 30 * 3.2)
+      ctx.fillText('😮', goalieRestX, gkRestY - 30 * goalieScale)
       ctx.restore()
 
       const arcX = lerp(penaltyX, endX, animProgress)
@@ -1275,12 +1285,12 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
         const ease = animProgress < 0.5
           ? 2 * animProgress * animProgress
           : 1 - Math.pow(-2 * animProgress + 2, 2) / 2
-        const diveX = lerp(gkCx, defZone.rx, ease)
+        const diveX = lerp(goalieRestX, defZone.rx, ease)
         const diveY = lerp(gkRestY, defZone.ry + 8, ease)
         const armsOut = 0.8 + ease * 0.6
-        drawGoalkeeper(ctx, diveX, diveY, 3.2, true, armsOut, images, defZone.id)
+        drawGoalkeeper(ctx, diveX, diveY, goalieScale, true, armsOut, images, defZone.id)
       } else {
-        drawGoalkeeper(ctx, gkCx, gkRestY, 3.2, false, 0, images)
+        drawGoalkeeper(ctx, goalieRestX, gkRestY, goalieScale, false, 0, images)
       }
 
       if (atkZone) {

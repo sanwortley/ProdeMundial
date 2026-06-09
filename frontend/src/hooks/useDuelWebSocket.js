@@ -27,6 +27,8 @@ export default function useDuelWebSocket(dueloId) {
     retadorJugadores: [],
     rivalJugadores: [],
     rivalLeft: false,
+    tipoDisparo: 'penalty',
+    posIniArquero: 'centro',
   })
   const wsRef = useRef(null)
   const onMessageRef = useRef(null)
@@ -185,6 +187,8 @@ function handleMessage(data, setState, sendMessage) {
           arqueroNombre: data.arquero_nombre,
           arqueroValor: data.arquero_valor,
           duracion: data.timeout,
+          tipoDisparo: data.tipo_disparo || 'penalty',
+          posIniArquero: data.pos_ini_arquero || 'centro',
         }
       })
       break
@@ -198,6 +202,8 @@ function handleMessage(data, setState, sendMessage) {
           posicion_atacante: data.posicion_atacante,
           posicion_arquero: data.posicion_arquero,
           fuerza: data.fuerza,
+          tipo_disparo: data.tipo_disparo || 'penalty',
+          pos_ini_arquero: data.pos_ini_arquero || 'centro',
         },
         golesRetador: data.goles_retador,
         golesRival: data.goles_rival,

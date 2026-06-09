@@ -339,6 +339,10 @@ async def _run_game(duelo_id: int):
                         except asyncio.QueueEmpty:
                             break
 
+            # Randomize shot type and goalie starting position
+            tipo_disparo = random.choice(['penalty', 'penalty', 'costado_izq', 'costado_der', 'fuera_area'])
+            pos_ini_arquero = random.choice(['centro', 'centro', 'izquierda', 'derecha'])
+
             penalty_msg = {
                 "type": "penalty_phase",
                 "ronda": ronda_num,
@@ -351,6 +355,8 @@ async def _run_game(duelo_id: int):
                 "arquero_nombre": gk_info["nombre"] if gk_info else "Arquero",
                 "arquero_valor": gk_info["valor_inicial"] if gk_info else 0,
                 "timeout": ROUND_TIMEOUT,
+                "tipo_disparo": tipo_disparo,
+                "pos_ini_arquero": pos_ini_arquero,
             }
             game_states[duelo_id]["penalty_phase"] = penalty_msg
             await broadcast(duelo_id, penalty_msg)
@@ -382,7 +388,7 @@ async def _run_game(duelo_id: int):
             except asyncio.CancelledError:
                 return
 
-            es_gol = _calcular_resultado(pos_atacante, pos_arquero, fuerza)
+            es_gol = _calcular_resultado(pos_atacante, pos_arquero, fuerza, tipo_disparo, pos_ini_arquero)
 
             if es_gol:
                 if atacante_id == duelo.id_retador:
@@ -415,6 +421,8 @@ async def _run_game(duelo_id: int):
                 "goles_rival": duelo.goles_rival,
                 "pateador_nombre": pateador["nombre"] if pateador else "?",
                 "arquero_nombre": gk_info["nombre"] if gk_info else "?",
+                "tipo_disparo": tipo_disparo,
+                "pos_ini_arquero": pos_ini_arquero,
             })
 
             try:
@@ -545,6 +553,8 @@ def _calcular_resultado(
     pos_atk: int | None,
     pos_def: int | None,
     fuerza: int,
+    tipo_disparo: str = 'penalty',
+    pos_ini_arquero: str = 'centro'
 ) -> bool:
     FUERZA_MAX = 80  # above this → miss (too strong)
     if pos_atk is None or pos_atk == 0 or fuerza > FUERZA_MAX:
@@ -553,9 +563,46 @@ def _calcular_resultado(
         return False          # wide zone → always miss
     if pos_def is None or pos_def == 0:
         return True           # defender timed out / no choice → automatic goal
+
+    # Define zones by side
+    left_zones = {1, 4}
+    right_zones = {2, 5}
+    
+    def get_side(zone_id):
+        if zone_id in left_zones: return 'izquierda'
+        if zone_id in right_zones: return 'derecha'
+        return 'centro'
+        
+    atk_side = get_side(pos_atk)
+    def_side = get_side(pos_def)
+
+    # 1. Base save chance if guessed correctly
     if pos_atk == pos_def:
-        return False          # same zone → saved
-    return True               # different zone → goal
+        # If goalkeeper started on opposite side of the dive/shot
+        if pos_ini_arquero == 'derecha' and def_side == 'izquierda':
+            # Hard to reach opposite side (50% chance of scoring/goal despite guessing correctly)
+            return random.random() < 0.50
+        elif pos_ini_arquero == 'izquierda' and def_side == 'derecha':
+            # Hard to reach opposite side (50% chance of scoring/goal despite guessing correctly)
+            return random.random() < 0.50
+        else:
+            # Guessed correctly and normal distance → 100% save
+            return False
+
+    # 2. Save chance if guessed incorrectly (pos_atk != pos_def)
+    # Outside the area shots are harder to score (GK has more time, so can save even if guessed wrong)
+    if tipo_disparo == 'fuera_area':
+        # 40% chance of saving even if guessed wrong
+        if random.random() < 0.40:
+            return False
+            
+    # Costado shots: slightly more difficult/random for attacker
+    if tipo_disparo in ('costado_izq', 'costado_der'):
+        # 15% chance of missing/saved due to tight angle
+        if random.random() < 0.15:
+            return False
+
+    return True
 
 
 async def broadcast(duelo_id: int, message: dict):

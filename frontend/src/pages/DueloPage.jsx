@@ -207,6 +207,8 @@ export default function DueloPage() {
           onDefend={defend}
           retadorJugadores={gameState.retadorJugadores}
           rivalJugadores={gameState.rivalJugadores}
+          tipoDisparo={gameState.tipoDisparo}
+          posIniArquero={gameState.posIniArquero}
         />
       </div>
 
