@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import GroupCard from '../components/GroupCard'
 import Button from '../components/Button'
-import { FolderClosed, PlusCircle, UserPlus, ShieldAlert } from 'lucide-react'
+import { PlusCircle, UserPlus, FolderOpen } from 'lucide-react'
 import RulesModal from '../components/RulesModal'
 
 const MyGroups = () => {
@@ -24,14 +24,10 @@ const MyGroups = () => {
         setLoading(false)
       }
     }
-
     fetchGroups()
 
-    // Check if the rules modal has been shown to this user
     const hasSeenRules = localStorage.getItem('rules_modal_shown')
-    if (hasSeenRules !== 'true') {
-      setShowRules(true)
-    }
+    if (hasSeenRules !== 'true') setShowRules(true)
   }, [])
 
   const handleCloseRules = () => {
@@ -41,44 +37,65 @@ const MyGroups = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-60px)] flex flex-col items-center justify-center">
+      <div className="min-h-[calc(100vh-60px)] flex flex-col items-center justify-center gap-4">
+        {/* Spinner celeste */}
         <div className="relative w-12 h-12">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-soccer-green/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-soccer-green rounded-full animate-spin"></div>
+          <div className="absolute inset-0 rounded-full" style={{ border: '3px solid rgba(99,184,224,0.12)' }} />
+          <div className="absolute inset-0 rounded-full animate-spin" style={{ border: '3px solid transparent', borderTopColor: '#63b8e0' }} />
         </div>
-        <p className="mt-4 text-slate-400 text-sm font-semibold tracking-wide">Buscando tus grupos...</p>
+        <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">Cargando grupos...</p>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-24 md:pb-8 flex flex-col gap-6">
-      
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-extrabold text-2xl tracking-tight text-slate-100 flex items-center gap-2">
-            <FolderClosed className="w-6 h-6 text-soccer-green" />
-            Mis Grupos
-          </h1>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
-            Compite con tus amigos en diferentes salas
-          </p>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-8 flex flex-col gap-6">
 
-        <div className="flex items-center gap-2">
-          <Link to="/join-group" className="flex-1 sm:flex-none">
-            <Button variant="secondary" className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5">
-              <UserPlus className="w-4 h-4" />
-              <span>Unirse</span>
-            </Button>
-          </Link>
-          <Link to="/create-group" className="flex-1 sm:flex-none">
-            <Button variant="primary" className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5">
-              <PlusCircle className="w-4 h-4 text-soccer-dark" />
-              <span>Crear Grupo</span>
-            </Button>
-          </Link>
+      {/* ── Header Banner ── */}
+      <div
+        className="relative rounded-2xl p-5 overflow-hidden argentina-stripe-top"
+        style={{
+          background: 'linear-gradient(135deg, rgba(12,26,48,0.95) 0%, rgba(29,78,216,0.15) 100%)',
+          border: '1px solid rgba(99,184,224,0.12)',
+        }}
+      >
+        {/* Glow fondo */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at 80% 50%, rgba(99,184,224,0.08) 0%, transparent 70%)',
+          }} />
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            {/* Kicker */}
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-1"
+              style={{ color: 'rgba(99,184,224,0.6)' }}>
+              🏆 FIFA World Cup 2026 🇦🇷
+            </p>
+            {/* Título display */}
+            <h1 className="text-display text-4xl leading-none text-wc-white">
+              MIS GRUPOS
+            </h1>
+            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1.5">
+              Competí con tus amigos en diferentes salas
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link to="/join-group" className="flex-1 sm:flex-none">
+              <Button variant="secondary" className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs">
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Unirse</span>
+              </Button>
+            </Link>
+            <Link to="/create-group" className="flex-1 sm:flex-none">
+              <Button variant="primary" className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs">
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Crear Grupo</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -88,44 +105,43 @@ const MyGroups = () => {
         </div>
       )}
 
-      {/* Grid of Groups */}
+      {/* ── Grid de grupos ── */}
       {groups.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-up">
           {groups.map((group) => (
             <GroupCard key={group.id_grupo} group={group} />
           ))}
         </div>
       ) : (
         /* Empty State */
-        <div className="glass-card rounded-3xl p-8 text-center flex flex-col items-center gap-4 py-16">
-          <div className="w-16 h-16 bg-slate-800/40 rounded-full border border-slate-700/50 flex items-center justify-center text-slate-500">
-            <FolderClosed className="w-8 h-8" />
+        <div
+          className="rounded-2xl p-8 text-center flex flex-col items-center gap-4 py-16"
+          style={{
+            background: 'rgba(10, 22, 42, 0.6)',
+            border: '1px solid rgba(99,184,224,0.08)',
+          }}
+        >
+          <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+            style={{ background: 'rgba(99,184,224,0.08)', border: '1px solid rgba(99,184,224,0.15)' }}>
+            <FolderOpen className="w-7 h-7 text-slate-500" />
           </div>
           <div>
-            <h3 className="font-extrabold text-lg text-slate-200">
-              No tienes ningún grupo todavía
-            </h3>
+            <h3 className="text-display text-2xl text-wc-white">SIN GRUPOS AÚN</h3>
             <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
-              Crea tu propia sala para invitar a tus amigos, o únete a una existente usando un código de invitación.
+              Creá tu propia sala para invitar a tus amigos, o unite a una existente con un código.
             </p>
           </div>
-
           <div className="flex flex-col sm:flex-row gap-3 mt-4 w-full max-w-xs">
             <Link to="/join-group" className="w-full">
-              <Button variant="secondary" className="w-full">
-                Unirse a un grupo
-              </Button>
+              <Button variant="secondary" className="w-full text-xs">Unirse a un grupo</Button>
             </Link>
             <Link to="/create-group" className="w-full">
-              <Button variant="primary" className="w-full">
-                Crear nuevo grupo
-              </Button>
+              <Button variant="primary" className="w-full text-xs">Crear nuevo grupo</Button>
             </Link>
           </div>
         </div>
       )}
 
-      {/* Rules Modal */}
       <RulesModal isOpen={showRules} onClose={handleCloseRules} />
     </div>
   )

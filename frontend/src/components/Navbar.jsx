@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Trophy, LogOut, User } from 'lucide-react'
+import { LogOut, User } from 'lucide-react'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -13,46 +13,47 @@ const Navbar = () => {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-soccer-dark/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="bg-soccer-green/10 p-1.5 rounded-lg border border-soccer-green/30 group-hover:bg-soccer-green/20 transition-all duration-300">
-            <Trophy className="w-5 h-5 text-soccer-green" />
-          </div>
-          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-soccer-green bg-clip-text text-transparent">
-            PRODE MUNDIAL
-          </span>
+    <header
+      className="sticky top-0 z-40 argentina-stripe-top"
+      style={{
+        backgroundColor: 'rgba(13,13,13,0.96)',
+        borderBottom: '1px solid #222',
+      }}
+    >
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
+
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2">
+          <span className="text-display text-2xl text-wc-white tracking-widest">PRODE</span>
+          <span className="text-display text-2xl tracking-widest" style={{ color: '#00a651' }}>MUNDIAL</span>
+          <span className="text-sm ml-0.5">🇦🇷</span>
         </Link>
 
         {user && (
           <div className="flex items-center gap-4">
-            <Link 
-              to="/my-groups" 
-              className="hidden md:inline-flex text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-soccer-green transition-all"
-            >
+            <Link to="/my-groups"
+              className="hidden md:inline text-[11px] font-bold uppercase tracking-widest text-wc-muted hover:text-wc-white transition-colors">
               Mis Grupos
             </Link>
-            
-            <Link 
-              to="/rules" 
-              className="hidden md:inline-flex text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-soccer-green transition-all"
-            >
+            <Link to="/rules"
+              className="hidden md:inline text-[11px] font-bold uppercase tracking-widest text-wc-muted hover:text-wc-white transition-colors">
               Reglamento
             </Link>
-            
-            <div className="flex items-center gap-2 bg-slate-800/40 border border-slate-700/50 rounded-full px-3 py-1.5">
-              <User className="w-4 h-4 text-soccer-green" />
-              <span className="text-xs font-medium text-slate-300 max-w-[120px] truncate">
-                {user.nombre}
-              </span>
+
+            {/* User chip */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ background: '#1a2a1a', border: '1px solid #2a3a2a' }}>
+              <User className="w-3.5 h-3.5" style={{ color: '#00a651' }} />
+              <span className="text-xs font-semibold text-wc-white max-w-[100px] truncate">{user.nombre}</span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="p-2 bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all duration-300"
+              className="p-2 rounded-full transition-colors"
+              style={{ background: '#1f1f1f', border: '1px solid #2a2a2a' }}
               title="Cerrar Sesión"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4" style={{ color: '#6b6b6b' }} />
             </button>
           </div>
         )}

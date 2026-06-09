@@ -9,120 +9,55 @@ const BottomNav = () => {
 
   if (!user) return null
 
-  // Extract groupId from url if present
-  // Matches paths like: /groups/1, /groups/1/predictions, etc.
   const groupMatch = pathname.match(/\/groups\/(\d+)/)
   const groupId = groupMatch ? groupMatch[1] : null
 
   const isActive = (path) => {
-    if (path === `/groups/${groupId}`) {
-      // For dashboard, ensure it's exact match or at least doesn't match subroutes
-      return pathname === path
-    }
+    if (path === `/groups/${groupId}`) return pathname === path
     return pathname.startsWith(path)
   }
 
-  const activeClass = "text-soccer-green"
-  const inactiveClass = "text-slate-500 hover:text-slate-300"
+  const NavItem = ({ to, icon: Icon, label, active }) => (
+    <Link
+      to={to}
+      className="flex flex-col items-center justify-center w-16 h-full transition-colors duration-150 relative"
+      style={{ color: active ? '#f5f5f5' : '#4a4a4a' }}
+    >
+      {/* Barra superior de pestaña activa — color verde FIFA */}
+      {active && (
+        <span
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+          style={{ background: '#00a651' }}
+        />
+      )}
+      <Icon className="w-5 h-5 mb-0.5" />
+      <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
+    </Link>
+  )
 
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-40 bg-soccer-dark/90 backdrop-blur-lg border-t border-slate-800/80 md:hidden px-2 pb-safe-bottom">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+    <nav
+      className="sticky bottom-0 z-40 md:hidden"
+      style={{
+        backgroundColor: '#0d0d0d',
+        borderTop: '1px solid #222',
+      }}
+    >
+      <div className="flex justify-around items-center h-14 max-w-lg mx-auto px-2">
         {groupId ? (
-          // Group dashboard navigation
           <>
-            <Link
-              to={`/groups/${groupId}`}
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                isActive(`/groups/${groupId}`) ? activeClass : inactiveClass
-              }`}
-            >
-              <Home className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Inicio</span>
-            </Link>
-
-            <Link
-              to={`/groups/${groupId}/predictions`}
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                isActive(`/groups/${groupId}/predictions`) ? activeClass : inactiveClass
-              }`}
-            >
-              <ClipboardList className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Prode</span>
-            </Link>
-
-            <Link
-              to={`/groups/${groupId}/ranking`}
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                isActive(`/groups/${groupId}/ranking`) ? activeClass : inactiveClass
-              }`}
-            >
-              <Trophy className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Posiciones</span>
-            </Link>
-
-            <Link
-              to={`/groups/${groupId}/fantasy`}
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                isActive(`/groups/${groupId}/fantasy`) ? activeClass : inactiveClass
-              }`}
-            >
-              <Shield className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fantasy</span>
-            </Link>
-
-            <Link
-              to={`/groups/${groupId}/settings`}
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                isActive(`/groups/${groupId}/settings`) ? activeClass : inactiveClass
-              }`}
-            >
-              <Settings className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Config</span>
-            </Link>
+            <NavItem to={`/groups/${groupId}`}             icon={Home}          label="Inicio"     active={isActive(`/groups/${groupId}`)} />
+            <NavItem to={`/groups/${groupId}/predictions`} icon={ClipboardList} label="Prode"      active={isActive(`/groups/${groupId}/predictions`)} />
+            <NavItem to={`/groups/${groupId}/ranking`}     icon={Trophy}        label="Posiciones" active={isActive(`/groups/${groupId}/ranking`)} />
+            <NavItem to={`/groups/${groupId}/fantasy`}     icon={Shield}        label="Fantasy"    active={isActive(`/groups/${groupId}/fantasy`)} />
+            <NavItem to={`/groups/${groupId}/settings`}    icon={Settings}      label="Config"     active={isActive(`/groups/${groupId}/settings`)} />
           </>
         ) : (
-          // General dashboard navigation
           <>
-            <Link
-              to="/my-groups"
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                pathname === '/my-groups' || pathname === '/' ? activeClass : inactiveClass
-              }`}
-            >
-              <FolderClosed className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Grupos</span>
-            </Link>
-
-            <Link
-              to="/create-group"
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                pathname === '/create-group' ? activeClass : inactiveClass
-              }`}
-            >
-              <PlusCircle className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Crear</span>
-            </Link>
-
-            <Link
-              to="/join-group"
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                pathname === '/join-group' ? activeClass : inactiveClass
-              }`}
-            >
-              <UserPlus className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Unirse</span>
-            </Link>
-
-            <Link
-              to="/rules"
-              className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-200 ${
-                pathname === '/rules' ? activeClass : inactiveClass
-              }`}
-            >
-              <BookOpen className="w-5 h-5 mb-0.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Reglas</span>
-            </Link>
+            <NavItem to="/my-groups"    icon={FolderClosed} label="Grupos" active={pathname === '/my-groups' || pathname === '/'} />
+            <NavItem to="/create-group" icon={PlusCircle}   label="Crear"  active={pathname === '/create-group'} />
+            <NavItem to="/join-group"   icon={UserPlus}     label="Unirse" active={pathname === '/join-group'} />
+            <NavItem to="/rules"        icon={BookOpen}     label="Reglas" active={pathname === '/rules'} />
           </>
         )}
       </div>
