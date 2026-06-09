@@ -30,6 +30,15 @@ export default function DueloPage() {
     }
   }, [gameState.phase])
 
+  useEffect(() => {
+    if (gameState.phase === 'match_end' && gameState.walkover && dueloInfo) {
+      const t = setTimeout(() => {
+        navigate(`/groups/${dueloInfo.id_grupo}/fantasy`)
+      }, 2000)
+      return () => clearTimeout(t)
+    }
+  }, [gameState.phase, gameState.walkover])
+
   async function loadDuelo() {
     try {
       setLoading(true)
@@ -212,20 +221,31 @@ export default function DueloPage() {
         )}
         {gameState.phase === 'match_end' && (
           <div>
-            {gameState.ganadorId === userId ? (
-              <div className="text-soccer-green text-lg font-black">GANASTE! 🏆</div>
-            ) : gameState.ganadorId ? (
-              <div className="text-red-400 text-lg font-black">Perdiste 😔</div>
+            {gameState.walkover ? (
+              <>
+                <div className="text-soccer-green text-lg font-black">🏆 GANASTE!</div>
+                <p className="text-slate-400 text-xs mt-1">
+                  {gameState.walkoverReason === 'rival_left'
+                    ? 'Tu rival abandonó el partido'
+                    : 'Tu rival se desconectó'}
+                </p>
+                <p className="text-slate-600 text-[10px] mt-1">Volviendo al inicio...</p>
+              </>
             ) : (
-              <div className="text-slate-300 text-lg font-black">Empate 🤝</div>
+              <>
+                {gameState.ganadorId === userId ? (
+                  <div className="text-soccer-green text-lg font-black">GANASTE! 🏆</div>
+                ) : gameState.ganadorId ? (
+                  <div className="text-red-400 text-lg font-black">Perdiste 😔</div>
+                ) : (
+                  <div className="text-slate-300 text-lg font-black">Empate 🤝</div>
+                )}
+                <button onClick={() => { sendMessage({ type: 'leave' }); navigate(`/groups/${dueloInfo.id_grupo}/fantasy`) }}
+                  className="mt-3 px-6 py-2.5 bg-gradient-green text-white font-bold rounded-xl">
+                  Volver
+                </button>
+              </>
             )}
-            {gameState.rivalLeft && (
-              <p className="text-slate-500 text-xs mt-2">El rival abandonó el duelo</p>
-            )}
-            <button onClick={() => { sendMessage({ type: 'leave' }); navigate(`/groups/${dueloInfo.id_grupo}/fantasy`) }}
-              className="mt-3 px-6 py-2.5 bg-gradient-green text-white font-bold rounded-xl">
-              Volver
-            </button>
           </div>
         )}
       </div>

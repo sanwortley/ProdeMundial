@@ -14,11 +14,9 @@ active_duels: dict[int, dict[int, WebSocket]] = {}
 game_tasks: dict[int, asyncio.Task] = {}
 message_queues: dict[int, dict[int, asyncio.Queue]] = {}
 game_states: dict[int, dict] = {}
-disconnect_timeouts: dict[int, asyncio.Task] = {}
 
 ROUND_TIMEOUT = 10
 ANIMATION_DURATION = 10
-DISCONNECT_TIMEOUT = 30
 
 
 def _get_user_from_token(token: str) -> int | None:
@@ -48,11 +46,6 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
         db.close()
 
     await websocket.accept()
-
-    # Cancel any pending disconnect timeout (user reconnected before cleanup)
-    if duelo_id in disconnect_timeouts:
-        disconnect_timeouts[duelo_id].cancel()
-        del disconnect_timeouts[duelo_id]
 
     if duelo_id not in active_duels:
         active_duels[duelo_id] = {}
@@ -101,6 +94,7 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
         db.close()
 
     # Listen for messages and put them in the queue for _run_game to consume
+    disconnect_reason = "disconnected"
     try:
         while True:
             try:
@@ -110,6 +104,7 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
                     if q:
                         await q.put(data)
                 elif data.get("type") == "leave":
+                    disconnect_reason = "left"
                     for uid, ws in list(active_duels.get(duelo_id, {}).items()):
                         if uid != user_id:
                             try:
@@ -132,7 +127,48 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
         if duelo_id in message_queues:
             message_queues[duelo_id].pop(user_id, None)
 
-        # Notify the other player about disconnect
+        # Check if a playing game was interrupted by this disconnect/leave
+        db_check = SessionLocal()
+        try:
+            d = db_check.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
+            if d and d.estado == "playing" and duelo_id in game_tasks:
+                other_id = d.id_rival if user_id == d.id_retador else d.id_retador
+                d.estado = "finished"
+                d.ganador_id = other_id
+                db_check.commit()
+
+                other_ws = active_duels.get(duelo_id, {}).get(other_id)
+                other_user = db_check.query(Usuario).filter(Usuario.id_usuario == other_id).first()
+                this_user = db_check.query(Usuario).filter(Usuario.id_usuario == user_id).first()
+                reason = "rival_left" if disconnect_reason == "left" else "rival_disconnected"
+                if other_ws:
+                    try:
+                        await other_ws.send_json({
+                            "type": "match_end",
+                            "ganador_id": d.ganador_id,
+                            "goles_retador": d.goles_retador,
+                            "goles_rival": d.goles_rival,
+                            "retador_nombre": other_user.nombre if other_user else "?",
+                            "rival_nombre": this_user.nombre if this_user else "?",
+                            "total_rondas": d.ronda_actual or 0,
+                            "walkover": True,
+                            "reason": reason,
+                        })
+                    except Exception:
+                        pass
+
+                # Cancel the game task immediately
+                if duelo_id in game_tasks:
+                    game_tasks[duelo_id].cancel()
+                    del game_tasks[duelo_id]
+                if duelo_id in game_states:
+                    del game_states[duelo_id]
+        except Exception:
+            pass
+        finally:
+            db_check.close()
+
+        # Notify the other player about disconnect (only if game didn't end)
         for uid, ws in list(active_duels.get(duelo_id, {}).items()):
             if uid != user_id:
                 try:
@@ -144,29 +180,24 @@ async def handle_duel_ws(websocket: WebSocket, duelo_id: int, token: str):
         has_queues = duelo_id in message_queues and len(message_queues[duelo_id]) > 0
 
         if not has_active and not has_queues:
-            # No users left — give time to reconnect before cancelling
-            async def _delayed_cancel():
-                await asyncio.sleep(DISCONNECT_TIMEOUT)
-                if duelo_id in active_duels:
-                    del active_duels[duelo_id]
-                if duelo_id in message_queues:
-                    del message_queues[duelo_id]
-                if duelo_id in disconnect_timeouts:
-                    del disconnect_timeouts[duelo_id]
-                if duelo_id in game_tasks:
-                    game_tasks[duelo_id].cancel()
-                    del game_tasks[duelo_id]
-                db = SessionLocal()
-                try:
-                    d = db.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
-                    if d and d.estado == "playing":
-                        d.estado = "cancelled"
-                        db.commit()
-                finally:
-                    db.close()
-
-            timeout_task = asyncio.create_task(_delayed_cancel())
-            disconnect_timeouts[duelo_id] = timeout_task
+            # No users left — clean up state
+            if duelo_id in active_duels:
+                del active_duels[duelo_id]
+            if duelo_id in message_queues:
+                del message_queues[duelo_id]
+            if duelo_id in game_tasks:
+                game_tasks[duelo_id].cancel()
+                del game_tasks[duelo_id]
+            if duelo_id in game_states:
+                del game_states[duelo_id]
+            db_clean = SessionLocal()
+            try:
+                d = db_clean.query(Duelo).filter(Duelo.id_duelo == duelo_id).first()
+                if d and d.estado == "playing":
+                    d.estado = "cancelled"
+                    db_clean.commit()
+            finally:
+                db_clean.close()
 
 
 async def _run_game(duelo_id: int):

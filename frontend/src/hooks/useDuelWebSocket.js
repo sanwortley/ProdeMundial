@@ -197,6 +197,8 @@ function handleMessage(data, setState, sendMessage) {
         ganadorId: data.ganador_id,
         golesRetador: data.goles_retador,
         golesRival: data.goles_rival,
+        walkover: data.walkover || false,
+        walkoverReason: data.reason || null,
       }))
       break
 
