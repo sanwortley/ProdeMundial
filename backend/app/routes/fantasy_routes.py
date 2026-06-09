@@ -75,10 +75,20 @@ class FantasyRankingEntry(BaseModel):
 
 FORMATIONS = {
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
+    "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],
+    "3-5-2": ["GK", "CB", "CB", "CB", "LM", "CM", "CM", "CM", "RM", "ST", "ST"],
+    "4-2-3-1": ["GK", "LB", "CB", "CB", "RB", "CDM", "CDM", "LW", "CAM", "RW", "ST"],
+    "5-3-2": ["GK", "CB", "CB", "CB", "LB", "RB", "CM", "CM", "CM", "ST", "ST"],
+    "3-4-3": ["GK", "CB", "CB", "CB", "LM", "CM", "CM", "RM", "LW", "ST", "RW"],
 }
 
 POSITION_COUNTS = {
     "4-3-3": {"GK": 1, "DEF": 4, "MID": 3, "FWD": 3},
+    "4-4-2": {"GK": 1, "DEF": 4, "MID": 4, "FWD": 2},
+    "3-5-2": {"GK": 1, "DEF": 3, "MID": 5, "FWD": 2},
+    "4-2-3-1": {"GK": 1, "DEF": 4, "MID": 4, "FWD": 2},
+    "5-3-2": {"GK": 1, "DEF": 5, "MID": 3, "FWD": 2},
+    "3-4-3": {"GK": 1, "DEF": 3, "MID": 4, "FWD": 3},
 }
 
 POS_TO_ROLE = {
@@ -99,7 +109,7 @@ def _verify_membership(db: Session, group_id: int, user_id: int):
     return membership
 
 
-def _get_or_create_team(db: Session, user_id: int, group_id: int, fecha: str, formacion: str = "4-4-2"):
+def _get_or_create_team(db: Session, user_id: int, group_id: int, fecha: str, formacion: str = "4-3-3"):
     team = db.query(EquipoFecha).filter(
         EquipoFecha.id_usuario == user_id,
         EquipoFecha.id_grupo == group_id,
@@ -336,7 +346,7 @@ def pick_player(
 
     # Validate formation position limits
     formation = team.formacion
-    expected_counts = POSITION_COUNTS.get(formation, {"GK": 1, "DEF": 4, "MID": 4, "FWD": 2})
+    expected_counts = POSITION_COUNTS.get(formation, {"GK": 1, "DEF": 4, "MID": 3, "FWD": 3})
     role = POS_TO_ROLE.get(req.posicion_cancha, jugador.posicion) if req.posicion_cancha else jugador.posicion
 
     # Count by role
