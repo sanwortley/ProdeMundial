@@ -230,7 +230,7 @@ export default function DueloPage() {
                   </div>
                   <span className="text-[10px] text-slate-500">segundos</span>
                 </div>
-                <button onClick={() => sendMessage({ type: 'leave' })}
+                <button onClick={() => { sendMessage({ type: 'leave' }); navigate(`/groups/${dueloInfo.id_grupo}/fantasy`) }}
                   className="mt-3 px-4 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30">
                   Salir (abandonar)
                 </button>
