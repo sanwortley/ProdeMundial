@@ -852,6 +852,26 @@ function drawGoal(ctx, w, h, phase, resultado, selectedGoal, animProgress = 1, i
     ry: gkTop + z.y * (gkBottom - gkTop),
   }))
 
+  // Zone indicators (faint, shown during penalty phase)
+  if (phase === 'penalty') {
+    ctx.save()
+    ctx.globalAlpha = 0.12
+    zones.forEach((z) => {
+      if (z.id === 6 || z.id === 7) return // skip wide zones for visual
+      ctx.beginPath()
+      ctx.arc(z.rx, z.ry, 16, 0, Math.PI * 2)
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 1
+      ctx.stroke()
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '8px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(z.label, z.rx, z.ry + 0.5)
+    })
+    ctx.restore()
+  }
+
   const now = Date.now()
 
   // --- Penalty phase ---
