@@ -30,14 +30,14 @@ export default function useDuelWebSocket(dueloId) {
   })
   const wsRef = useRef(null)
   const onMessageRef = useRef(null)
+  const intentionalCloseRef = useRef(false)
 
   const sendMessage = useCallback((msg) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg))
     }
     if (msg.type === 'leave') {
-      // Don't reconnect after leaving
-      intentionalClose = true
+      intentionalCloseRef.current = true
     }
   }, [])
 
@@ -58,10 +58,10 @@ export default function useDuelWebSocket(dueloId) {
     let reconnectTimer = null
     let mounted = true
     let attempts = 0
-    let intentionalClose = false
+    intentionalCloseRef.current = false
 
     const close = () => {
-      intentionalClose = true
+      intentionalCloseRef.current = true
       if (wsRef.current) {
         wsRef.current.close()
         wsRef.current = null
@@ -98,7 +98,7 @@ export default function useDuelWebSocket(dueloId) {
       ws.onclose = () => {
         setConnected(false)
         if (!mounted) return
-        if (intentionalClose) return
+        if (intentionalCloseRef.current) return
         setGameState((s) => {
           if (s.phase === 'match_end' || s.phase === 'connecting') return s
           return { ...s, phase: 'reconnecting' }
