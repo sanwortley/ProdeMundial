@@ -70,4 +70,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
     if user is None or user.session_token != session_token:
         raise credentials_exception
+
+    # Update last active timestamp if older than 1 minute or None
+    now = datetime.utcnow()
+    if not user.ultimo_acceso or (now - user.ultimo_acceso) > timedelta(minutes=1):
+        user.ultimo_acceso = now
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Failed to update ultimo_acceso for user {user.id_usuario}: {e}")
+
     return user

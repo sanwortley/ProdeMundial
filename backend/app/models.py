@@ -14,6 +14,7 @@ class Usuario(Base):
     session_token = Column(String, nullable=True)
     secret_phrase_hash = Column(String, nullable=True)
     fecha_registro = Column(DateTime, default=datetime.datetime.utcnow)
+    ultimo_acceso = Column(DateTime, default=datetime.datetime.utcnow, nullable=True)
 
     # Relationships
     grupos_unidos = relationship("GrupoUsuario", back_populates="usuario", cascade="all, delete-orphan")

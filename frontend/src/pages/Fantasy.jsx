@@ -821,15 +821,18 @@ export default function Fantasy() {
           onClick={() => setShowDueloModal(false)}>
           <div className="glass-card rounded-2xl border border-slate-700 w-full max-w-sm p-4"
             onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-slate-200">Jugadores disponibles</h3>
               <button onClick={() => setShowDueloModal(false)}
                 className="text-slate-400 hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
+            <p className="text-[10px] text-slate-400 mb-3">
+              Solo se muestran usuarios activos en los últimos 5 minutos con su equipo de 11 jugadores listo.
+            </p>
             {disponibles.length === 0 ? (
-              <p className="text-slate-500 text-xs text-center py-4">No hay jugadores disponibles con 11 jugadores</p>
+              <p className="text-slate-500 text-xs text-center py-4">No hay jugadores activos recientemente.</p>
             ) : (
               <div className="space-y-2">
                 {disponibles.map((u) => (

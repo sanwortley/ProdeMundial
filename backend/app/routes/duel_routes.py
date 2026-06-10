@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -111,7 +112,10 @@ def duelos_disponibles(
             continue
         u = db.query(Usuario).filter(Usuario.id_usuario == m.id_usuario).first()
         if u:
-            disponibles.append(u)
+            # Only show users who were active in the last 5 minutes
+            five_minutes_ago = datetime.utcnow() - timedelta(minutes=5)
+            if u.ultimo_acceso and u.ultimo_acceso >= five_minutes_ago:
+                disponibles.append(u)
     return disponibles
 
 
