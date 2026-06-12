@@ -49,6 +49,15 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: add ultimo_acceso column to usuarios if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE usuarios ADD COLUMN ultimo_acceso TIMESTAMP"))
+        conn.commit()
+        logger.info("Added ultimo_acceso column to usuarios table (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Migrate: add posicion_especifica column to jugadores if missing
 with engine.connect() as conn:
     try:
