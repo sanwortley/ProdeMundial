@@ -15,7 +15,7 @@ from .models import Partido, Usuario
 from .seed_data import seed_matches
 from .seed_players import seed_players
 from .routes import auth_routes, group_routes, match_routes, prediction_routes, ranking_routes, fantasy_routes, fantasy_h2h_routes, admin_routes, duel_routes
-from .sync_service import auto_sync_matches
+from .sync_manager import run_full_sync
 
 logger = logging.getLogger(__name__)
 
@@ -151,20 +151,13 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    def sync_job():
-        db = SessionLocal()
-        try:
-            auto_sync_matches(db)
-        finally:
-            db.close()
-
     scheduler.add_job(
-        sync_job,
+        run_full_sync,
         trigger="interval",
         minutes=5,
         id="auto_sync_matches",
         replace_existing=True,
-        name="Auto-sync resultados desde football-data.org",
+        name="Auto-sync resultados (API gratuita + football-data.org)",
     )
     scheduler.start()
     yield

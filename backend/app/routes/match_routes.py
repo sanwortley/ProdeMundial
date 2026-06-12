@@ -183,16 +183,24 @@ def update_bulk_match_results(
 @limiter.limit("10/minute")
 async def auto_sync_endpoint(
     request: Request,
-    db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    from ..sync_service import auto_sync_matches
+    from ..sync_manager import run_full_sync
 
-    result = auto_sync_matches(db)
-    if result.get("error"):
-        raise HTTPException(status_code=400, detail=result["error"])
+    result = run_full_sync()
+
+    detail_parts = []
+    if result["updated"] > 0:
+        detail_parts.append(f"Sincronizados {result['updated']} partidos")
+    if result.get("errors"):
+        for err in result["errors"]:
+            if "FOOTBALL_DATA_KEY" not in err:
+                detail_parts.append(f"Error: {err}")
+
+    detail = ". ".join(detail_parts) if detail_parts else "Sin partidos nuevos para sincronizar."
+
     return {
-        "detail": f"Sincronizados {result['updated']} partidos en {result['groups']} grupos.",
+        "detail": detail,
         "updated": result["updated"],
         "groups": result["groups"],
     }
