@@ -148,6 +148,26 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migrate: convert partido.fecha from Argentina time (UTC-3) to UTC.
+# Old seed data stored dates in Argentina local time (e.g., 16:00 for the
+# first match slot). In UTC that would be 19:00.  Check whether the first
+# match still has the old time and bump all dates by 3 hours if so.
+db = SessionLocal()
+try:
+    first = db.query(Partido).order_by(Partido.id_partido.asc()).first()
+    if first and first.fecha and first.fecha.hour == 16:
+        dialect = db.bind.dialect.name
+        if dialect == "postgresql":
+            db.execute(text("UPDATE partidos SET fecha = fecha + INTERVAL '3 hours'"))
+        else:
+            db.execute(text("UPDATE partidos SET fecha = datetime(fecha, '+3 hours')"))
+        db.commit()
+        logger.info("Migrated partido.fecha from Argentina time to UTC (+3h)")
+except Exception as e:
+    logger.warning("Could not migrate partido timezone: %s", e)
+finally:
+    db.close()
+
 # Seed players from football-data.org
 db = SessionLocal()
 try:
