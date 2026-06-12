@@ -2,7 +2,7 @@ import os
 import unicodedata
 import urllib.request
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from .models import Partido, Prediccion, Jugador, EquipoFecha, JugadorEquipoFecha
 from .utils import recalcular_puntos_grupo
@@ -95,9 +95,9 @@ def auto_sync_matches(db: Session) -> dict:
     if not api_key:
         return {"updated": 0, "groups": 0, "error": "FOOTBALL_DATA_KEY no configurada"}
 
-    now = datetime.utcnow()
+    now_arg = datetime.utcnow() - timedelta(hours=3)
     partidos_pendientes = db.query(Partido).filter(
-        Partido.fecha < now,
+        Partido.fecha < now_arg,
         Partido.finalizado == False
     ).order_by(Partido.fecha.asc()).all()
 

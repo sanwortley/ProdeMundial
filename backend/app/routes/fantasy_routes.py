@@ -161,9 +161,9 @@ def init_team(
 
     # Determine current fecha based on unfinished matches
     from ..models import Partido
-    now = __import__("datetime").datetime.utcnow()
+    now_arg = __import__("datetime").datetime.utcnow() - __import__("datetime").timedelta(hours=3)
     current_fecha = db.query(Partido.fase).filter(
-        Partido.fecha <= now,
+        Partido.fecha <= now_arg,
         Partido.finalizado == False
     ).order_by(Partido.fecha.asc()).first()
 
@@ -254,9 +254,9 @@ def get_team(
 
     if not fecha:
         from ..models import Partido
-        now = __import__("datetime").datetime.utcnow()
+        now_arg = __import__("datetime").datetime.utcnow() - __import__("datetime").timedelta(hours=3)
         current = db.query(Partido.fase).filter(
-            Partido.fecha <= now,
+            Partido.fecha <= now_arg,
             Partido.finalizado == False
         ).order_by(Partido.fecha.asc()).first()
         if not current:
@@ -460,9 +460,9 @@ def get_group_teams(
 
     if not fecha:
         from ..models import Partido
-        now = __import__("datetime").datetime.utcnow()
+        now_arg = __import__("datetime").datetime.utcnow() - __import__("datetime").timedelta(hours=3)
         current = db.query(Partido.fase).filter(
-            Partido.fecha <= now
+            Partido.fecha <= now_arg
         ).order_by(Partido.fecha.desc()).first()
         if current:
             fecha = current[0]

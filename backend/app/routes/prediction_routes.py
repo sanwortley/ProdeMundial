@@ -1,7 +1,7 @@
 import threading
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from pydantic import BaseModel
 from ..database import get_db
@@ -34,7 +34,8 @@ def upsert_prediction(
         raise HTTPException(status_code=404, detail="Partido no encontrado")
         
     # Validation: cannot predict if match has already started
-    if datetime.utcnow() >= partido.fecha:
+    # Match dates are stored in Argentina time (UTC-3), convert UTC to Argentina for comparison
+    if datetime.utcnow() - timedelta(hours=3) >= partido.fecha:
         raise HTTPException(
             status_code=400, 
             detail="El partido ya ha comenzado. No se pueden cargar o modificar predicciones."
@@ -177,7 +178,7 @@ def upsert_champion_prediction(
         
     # Check if the last match of Fecha 3 has already started
     last_group_match = db.query(Partido).filter(Partido.fase == "Fecha 3").order_by(Partido.fecha.desc()).first()
-    if last_group_match and datetime.utcnow() >= last_group_match.fecha:
+    if last_group_match and datetime.utcnow() - timedelta(hours=3) >= last_group_match.fecha:
         raise HTTPException(
             status_code=400,
             detail="El último partido de la Fecha 3 ya ha comenzado. No se pueden crear o modificar predicciones de campeón."
