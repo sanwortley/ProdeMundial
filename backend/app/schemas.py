@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 from typing import List, Optional
 from datetime import datetime
 
@@ -78,6 +78,12 @@ class PartidoResponse(PartidoBase):
 
     class Config:
         from_attributes = True
+
+    @field_serializer('fecha')
+    def serialize_fecha(self, v: datetime, _info):
+        if v is not None:
+            return v.isoformat() + 'Z'
+        return v
 
 class PartidoResultUpdate(BaseModel):
     goles_local: int

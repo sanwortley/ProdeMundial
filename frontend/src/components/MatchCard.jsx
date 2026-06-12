@@ -43,7 +43,9 @@ const MatchCard = ({
     }
   }, [prediction])
 
-  const matchDate = new Date(fecha)
+  // Force UTC parsing by appending Z (backend stores dates in UTC)
+  const fechaUtc = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z'
+  const matchDate = new Date(fechaUtc)
   const [timeState, setTimeState] = useState({ isStarted: false, formattedTime: '' })
 
   useEffect(() => {
