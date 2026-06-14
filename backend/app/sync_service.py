@@ -9,7 +9,64 @@ from .utils import recalcular_puntos_grupo
 
 FOOTBALL_DATA_URL = "https://api.football-data.org/v4/competitions/2000/matches"
 
-TEAM_NAME_MAPPING = {
+ENGLISH_TO_SPANISH_MAP = {
+    "mexico": "México",
+    "south africa": "Sudáfrica",
+    "south korea": "Corea del Sur",
+    "czechia": "República Checa",
+    "czech republic": "República Checa",
+    "canada": "Canadá",
+    "bosnia-herzegovina": "Bosnia y Herzegovina",
+    "bosnia and herzegovina": "Bosnia y Herzegovina",
+    "qatar": "Qatar",
+    "switzerland": "Suiza",
+    "brazil": "Brasil",
+    "morocco": "Marruecos",
+    "haiti": "Haití",
+    "scotland": "Escocia",
+    "united states": "Estados Unidos",
+    "usa": "Estados Unidos",
+    "paraguay": "Paraguay",
+    "australia": "Australia",
+    "turkey": "Turquía",
+    "germany": "Alemania",
+    "curacao": "Curazao",
+    "curaçao": "Curazao",
+    "netherlands": "Países Bajos",
+    "japan": "Japón",
+    "ivory coast": "Costa de Marfil",
+    "cote d'ivoire": "Costa de Marfil",
+    "ecuador": "Ecuador",
+    "sweden": "Suecia",
+    "tunisia": "Túnez",
+    "spain": "España",
+    "cape verde": "Cabo Verde",
+    "cape verde islands": "Cabo Verde",
+    "belgium": "Bélgica",
+    "egypt": "Egipto",
+    "saudi arabia": "Arabia Saudita",
+    "uruguay": "Uruguay",
+    "iran": "Irán",
+    "new zealand": "Nueva Zelanda",
+    "france": "Francia",
+    "senegal": "Senegal",
+    "iraq": "Irak",
+    "norway": "Noruega",
+    "argentina": "Argentina",
+    "algeria": "Argelia",
+    "austria": "Austria",
+    "jordan": "Jordania",
+    "portugal": "Portugal",
+    "congo": "Congo",
+    "england": "Inglaterra",
+    "croatia": "Croacia",
+    "ghana": "Ghana",
+    "panama": "Panamá",
+    "uzbekistan": "Uzbekistán",
+    "colombia": "Colombia",
+}
+
+SPANISH_TO_ENGLISH_MAP = {
     "mexico": "Mexico",
     "sudafrica": "South Africa",
     "corea del sur": "South Korea",
@@ -62,14 +119,30 @@ TEAM_NAME_MAPPING = {
 
 
 def normalize_name(name: str) -> str:
+    if name is None:
+        return ""
     n = name.lower().strip()
     n = "".join(c for c in unicodedata.normalize("NFD", n) if unicodedata.category(c) != "Mn")
     return n
 
 
 def map_team_name(name: str) -> str:
+    if name is None:
+        return ""
+    # Maps Spanish team name to English for Player queries (used in fantasy points calculation)
     n = normalize_name(name)
-    mapped = TEAM_NAME_MAPPING.get(n)
+    mapped = SPANISH_TO_ENGLISH_MAP.get(n)
+    if mapped:
+        return mapped
+    return name
+
+
+def map_english_to_spanish(name: str) -> str:
+    if name is None:
+        return ""
+    # Maps English team name from the API to Spanish for Partido queries
+    n = normalize_name(name)
+    mapped = ENGLISH_TO_SPANISH_MAP.get(n)
     if mapped:
         return mapped
     return name
@@ -95,9 +168,8 @@ def auto_sync_matches(db: Session) -> dict:
     if not api_key:
         return {"updated": 0, "groups": 0, "error": "FOOTBALL_DATA_KEY no configurada"}
 
-    now = datetime.utcnow()
+    # Query all non-finished matches (ignore date filters so that early matches or matches with wrong scheduled time are updated too!)
     partidos_pendientes = db.query(Partido).filter(
-        Partido.fecha < now,
         Partido.finalizado == False
     ).order_by(Partido.fecha.asc()).all()
 
@@ -116,31 +188,59 @@ def auto_sync_matches(db: Session) -> dict:
     fixtures = data.get("matches", [])
     fixtures_map = {}
     for f in fixtures:
-        if f.get("status") == "FINISHED":
-            home = map_team_name(f.get("homeTeam", {}).get("name", ""))
-            away = map_team_name(f.get("awayTeam", {}).get("name", ""))
-            score = f.get("score", {}).get("fullTime", {})
-            h_goals = score.get("home")
-            a_goals = score.get("away")
-            if h_goals is not None and a_goals is not None:
-                fixtures_map[(normalize_name(home), normalize_name(away))] = (h_goals, a_goals)
+        home = map_english_to_spanish(f.get("homeTeam", {}).get("name", ""))
+        away = map_english_to_spanish(f.get("awayTeam", {}).get("name", ""))
+        
+        utc_date_str = f.get("utcDate", "")
+        match_date = None
+        if utc_date_str:
+            try:
+                match_date = datetime.strptime(utc_date_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                pass
+                
+        status = f.get("status")
+        score = f.get("score", {}).get("fullTime", {})
+        h_goals = score.get("home")
+        a_goals = score.get("away")
+        
+        fixtures_map[(normalize_name(home), normalize_name(away))] = {
+            "goles_local": h_goals,
+            "goles_visitante": a_goals,
+            "finalizado": status == "FINISHED",
+            "fecha": match_date
+        }
 
     updated_ids = []
+    any_changed = False
     for p in partidos_pendientes:
         p_local = normalize_name(p.equipo_local)
         p_visit = normalize_name(p.equipo_visitante)
         if (p_local, p_visit) in fixtures_map:
-            g_l, g_v = fixtures_map[(p_local, p_visit)]
-            p.goles_local = g_l
-            p.goles_visitante = g_v
-            p.finalizado = True
-            updated_ids.append(p.id_partido)
-            check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+            api_match = fixtures_map[(p_local, p_visit)]
+            
+            # Sync date/time if it changed and is valid
+            if api_match["fecha"] and p.fecha != api_match["fecha"]:
+                p.fecha = api_match["fecha"]
+                any_changed = True
+                
+            if api_match["finalizado"]:
+                g_l = api_match["goles_local"]
+                g_v = api_match["goles_visitante"]
+                if g_l is not None and g_v is not None:
+                    p.goles_local = g_l
+                    p.goles_visitante = g_v
+                    p.finalizado = True
+                    any_changed = True
+                    updated_ids.append(p.id_partido)
+                    check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
 
-    db.commit()
+    if any_changed:
+        db.commit()
 
     if not updated_ids:
-        return {"updated": 0, "groups": 0, "reason": "No se encontraron resultados en la API para partidos pendientes"}
+        # Commit any date corrections that occurred even if no matches finished
+        return {"updated": 0, "groups": 0, "reason": "No se encontraron nuevos resultados finalizados en la API."}
 
     groups = db.query(Prediccion.id_grupo).filter(
         Prediccion.id_partido.in_(updated_ids)
@@ -173,6 +273,7 @@ def auto_sync_matches(db: Session) -> dict:
             logging.getLogger(__name__).error(f"Error resolving H2H: {e}")
 
     return {"updated": len(updated_ids), "groups": len(affected_group_ids)}
+
 
 
 def _update_fantasy_points(db: Session, partido: Partido):
