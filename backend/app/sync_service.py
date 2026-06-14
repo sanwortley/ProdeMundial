@@ -164,9 +164,7 @@ def check_and_advance_knockouts(db: Session, match_id: int, equipo_local: str, e
 
 
 def auto_sync_matches(db: Session) -> dict:
-    api_key = os.getenv("FOOTBALL_DATA_KEY")
-    if not api_key:
-        return {"updated": 0, "groups": 0, "error": "FOOTBALL_DATA_KEY no configurada"}
+    api_key = os.getenv("FOOTBALL_DATA_KEY") or "bdd0e2ba30bd4368a5591ea1f1696067"
 
     # Query all matches of the tournament to allow correcting/self-healing wrong or simulated results
     partidos_pendientes = db.query(Partido).order_by(Partido.fecha.asc()).all()
