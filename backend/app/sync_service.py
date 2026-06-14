@@ -168,13 +168,11 @@ def auto_sync_matches(db: Session) -> dict:
     if not api_key:
         return {"updated": 0, "groups": 0, "error": "FOOTBALL_DATA_KEY no configurada"}
 
-    # Query all non-finished matches (ignore date filters so that early matches or matches with wrong scheduled time are updated too!)
-    partidos_pendientes = db.query(Partido).filter(
-        Partido.finalizado == False
-    ).order_by(Partido.fecha.asc()).all()
+    # Query all matches of the tournament to allow correcting/self-healing wrong or simulated results
+    partidos_pendientes = db.query(Partido).order_by(Partido.fecha.asc()).all()
 
     if not partidos_pendientes:
-        return {"updated": 0, "groups": 0, "reason": "Sin partidos pendientes"}
+        return {"updated": 0, "groups": 0, "reason": "Sin partidos en la base de datos"}
 
     req = urllib.request.Request(FOOTBALL_DATA_URL)
     req.add_header("X-Auth-Token", api_key)
@@ -228,19 +226,21 @@ def auto_sync_matches(db: Session) -> dict:
                 g_l = api_match["goles_local"]
                 g_v = api_match["goles_visitante"]
                 if g_l is not None and g_v is not None:
-                    p.goles_local = g_l
-                    p.goles_visitante = g_v
-                    p.finalizado = True
-                    any_changed = True
-                    updated_ids.append(p.id_partido)
-                    check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+                    # Update if not finalized, or if the score differs (self-healing correction)
+                    if not p.finalizado or p.goles_local != g_l or p.goles_visitante != g_v:
+                        p.goles_local = g_l
+                        p.goles_visitante = g_v
+                        p.finalizado = True
+                        any_changed = True
+                        updated_ids.append(p.id_partido)
+                        check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
 
     if any_changed:
         db.commit()
 
     if not updated_ids:
-        # Commit any date corrections that occurred even if no matches finished
-        return {"updated": 0, "groups": 0, "reason": "No se encontraron nuevos resultados finalizados en la API."}
+        # Commit any date corrections that occurred even if no matches finished/updated
+        return {"updated": 0, "groups": 0, "reason": "No se encontraron nuevos resultados o discrepancias en la API."}
 
     groups = db.query(Prediccion.id_grupo).filter(
         Prediccion.id_partido.in_(updated_ids)
