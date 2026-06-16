@@ -175,11 +175,25 @@ def auto_sync_matches(db: Session) -> dict:
     req = urllib.request.Request(FOOTBALL_DATA_URL)
     req.add_header("X-Auth-Token", api_key)
 
-    try:
-        with urllib.request.urlopen(req, timeout=10.0) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        return {"updated": 0, "groups": 0, "error": f"Error llamando a football-data.org: {e}"}
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    data = None
+    last_err = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=15.0, context=ctx) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                break
+        except Exception as e:
+            last_err = e
+            import time
+            time.sleep(1)
+
+    if not data:
+        return {"updated": 0, "groups": 0, "error": f"Error llamando a football-data.org: {last_err}"}
 
     fixtures = data.get("matches", [])
     fixtures_map = {}

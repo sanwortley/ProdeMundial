@@ -123,9 +123,23 @@ def fetch_api_games() -> list:
     req = urllib.request.Request(url)
     req.add_header("User-Agent", "ProdeWC26-AutoSync/1.0")
     req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=10) as response:
-        data = json.loads(response.read().decode("utf-8"))
-    return data.get("games", [])
+    
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    last_err = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=15.0, context=ctx) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                return data.get("games", [])
+        except Exception as e:
+            last_err = e
+            import time
+            time.sleep(1)
+    raise last_err
 
 
 def sync_results():
@@ -243,7 +257,7 @@ def sync_results():
             logger.info("[AutoSync] ⏳ Sin partidos finalizados nuevos.")
 
     except Exception as e:
-        logger.error(f"[AutoSync] ❌ Error en sincronización: {e}")
+        logger.warning(f"[AutoSync] ⏳ API externa worldcup26.ir no disponible temporalmente: {e}")
         db.rollback()
     finally:
         db.close()
