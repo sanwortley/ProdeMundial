@@ -123,3 +123,29 @@ def recalcular_puntos_grupo(db: Session, id_grupo: int):
         miembro.mejor_racha = mejor_racha
         
     db.commit()
+
+
+def resolver_campeon_grupo_automatico(db, equipo_campeon: str):
+    """
+    Sets the champion prediction points for all users across all groups
+    and recalculates points for all groups.
+    """
+    from .models import PrediccionCampeon, Grupo
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Update points for PrediccionCampeon in all groups
+    predicciones = db.query(PrediccionCampeon).all()
+    for pred in predicciones:
+        if pred.equipo_campeon.strip().lower() == equipo_campeon.strip().lower():
+            pred.puntos_obtenidos = 50
+        else:
+            pred.puntos_obtenidos = 0
+            
+    db.commit()
+    logger.info(f"[AutoChampion] Campeón '{equipo_campeon}' asignado. Recalculando todos los grupos...")
+    
+    # Recalculate rankings for all groups
+    grupos = db.query(Grupo).all()
+    for group in grupos:
+        recalcular_puntos_grupo(db, group.id_grupo)

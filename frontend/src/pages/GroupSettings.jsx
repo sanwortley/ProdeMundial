@@ -23,9 +23,7 @@ const GroupSettings = () => {
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
 
-  // Champion setter
-  const [campeonElegido, setCampeonElegido] = useState('')
-  const [settingCamp, setSettingCamp] = useState(false)
+
 
   const fetchDetails = async () => {
     try {
@@ -91,24 +89,7 @@ const GroupSettings = () => {
     }
   }
 
-  const handleDefineChampion = async (e) => {
-    e.preventDefault()
-    if (!campeonElegido.trim()) return
 
-    setSettingCamp(true)
-    try {
-      await api.post(`/groups/${groupId}/set-champion`, {
-        equipo_campeon: campeonElegido.trim()
-      })
-      const gRes = await api.get(`/groups/${groupId}`)
-      setGroup(gRes.data)
-      alert('¡Campeón establecido y puntos actualizados!');
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Error al definir campeón')
-    } finally {
-      setSettingCamp(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -285,33 +266,6 @@ const GroupSettings = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Define Champion (Admin only) */}
-          <div className="glass-card rounded-3xl p-5 border border-slate-800 flex flex-col gap-4">
-            <h2 className="font-extrabold text-sm text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-soccer-gold" />
-              Definir Campeón del Torneo
-            </h2>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Establecé el equipo campeón para otorgar +50 puntos a quienes acertaron. Esta acción actualiza el ranking de todos los miembros.
-            </p>
-            <form onSubmit={handleDefineChampion} className="flex flex-col sm:flex-row items-end gap-3">
-              <div className="flex-1 w-full">
-                <Input
-                  label="Equipo Campeón"
-                  id="equipoCampeonSim"
-                  type="text"
-                  value={campeonElegido}
-                  onChange={(e) => setCampeonElegido(e.target.value)}
-                  placeholder="Ej: Argentina"
-                  required
-                />
-              </div>
-              <Button type="submit" variant="secondary" loading={settingCamp} className="w-full sm:w-auto h-11">
-                Resolver Campeón
-              </Button>
-            </form>
           </div>
         </>
       )}

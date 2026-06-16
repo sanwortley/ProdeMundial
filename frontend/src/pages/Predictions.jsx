@@ -6,6 +6,19 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import { ClipboardList, ArrowLeft, Trophy, Save, Check } from 'lucide-react'
 
+const equiposMundial = [
+  "Alemania", "Argelia", "Argentina", "Australia", "Austria", "Bélgica",
+  "Bolivia", "Bosnia y Herzegovina", "Brasil", "Cabo Verde", "Canadá",
+  "Chile", "Colombia", "Congo", "Corea del Sur", "Costa de Marfil",
+  "Costa Rica", "Croacia", "Curazao", "Dinamarca", "Ecuador", "Egipto",
+  "España", "Estados Unidos", "Francia", "Ghana", "Haití", "Honduras",
+  "Inglaterra", "Irán", "Irak", "Italia", "Jamaica", "Japón", "Jordania",
+  "Marruecos", "México", "Nigeria", "Noruega", "Nueva Zelanda", "Países Bajos",
+  "Panamá", "Paraguay", "Perú", "Portugal", "Qatar", "República Checa",
+  "Senegal", "Sudáfrica", "Suecia", "Suiza", "Túnez", "Turquía", "Uruguay",
+  "Uzbekistán", "Venezuela"
+].sort();
+
 const Predictions = () => {
   const { groupId } = useParams()
   const [matches, setMatches] = useState([])
@@ -238,16 +251,24 @@ const Predictions = () => {
 
         <form onSubmit={handleSaveChampion} className="flex flex-col sm:flex-row items-end gap-3 mt-4">
           <div className="flex-1 w-full">
-            <Input
-              label="Equipo Campeón"
-              id="equipoCampeon"
-              type="text"
-              value={campeonInput}
-              onChange={(e) => setCampeonInput(e.target.value)}
-              placeholder="Ej: Argentina, Brasil, Francia"
-              disabled={isChampionLocked}
-              required
-            />
+            <div className="flex flex-col gap-1.5 w-full text-left">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Equipo Campeón
+              </label>
+              <select
+                id="equipoCampeon"
+                value={campeonInput}
+                onChange={(e) => setCampeonInput(e.target.value)}
+                disabled={isChampionLocked}
+                required
+                className="w-full h-11 px-4 bg-slate-950 border border-slate-800/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-soccer-green disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Selecciona tu candidato...</option>
+                {equiposMundial.map(eq => (
+                  <option key={eq} value={eq}>{eq}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           {!isChampionLocked ? (

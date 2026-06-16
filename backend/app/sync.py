@@ -239,6 +239,12 @@ def sync_results():
                                 g_local, g_visit
                             )
 
+                        # Auto resolve champion if it is the Final match
+                        if partido.fase == 'Final':
+                            winner = partido.equipo_local if g_local >= g_visit else partido.equipo_visitante
+                            from .utils import resolver_campeon_grupo_automatico
+                            resolver_campeon_grupo_automatico(db, winner)
+
         if affected_match_ids:
             db.commit()
 

@@ -264,6 +264,12 @@ def auto_sync_matches(db: Session) -> dict:
                         any_changed = True
                         updated_ids.append(p.id_partido)
                         check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+                        
+                        # Auto resolve champion if it is the Final match
+                        if p.fase == 'Final':
+                            winner = p.equipo_local if g_l >= g_v else p.equipo_visitante
+                            from .utils import resolver_campeon_grupo_automatico
+                            resolver_campeon_grupo_automatico(db, winner)
 
     if any_changed:
         db.commit()

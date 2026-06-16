@@ -212,37 +212,5 @@ def delete_group(group_id: int, db: Session = Depends(get_db), current_user: Usu
     return {"detail": "Grupo eliminado exitosamente"}
 
 
-class SetChampionRequest(BaseModel):
-    equipo_campeon: str
 
-
-@router.post("/{group_id}/set-champion")
-def set_group_champion(
-    group_id: int,
-    req: SetChampionRequest,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
-    group = db.query(Grupo).filter(Grupo.id_grupo == group_id).first()
-    if not group:
-        raise HTTPException(status_code=404, detail="Grupo no encontrado")
-        
-    # Only creator can set champion
-    if group.creado_por != current_user.id_usuario:
-        raise HTTPException(status_code=403, detail="Solo el creador del grupo puede decidir el campeón")
-        
-    # Update points for PrediccionCampeon in this group
-    predicciones = db.query(PrediccionCampeon).filter(PrediccionCampeon.id_grupo == group_id).all()
-    for pred in predicciones:
-        if pred.equipo_campeon.strip().lower() == req.equipo_campeon.strip().lower():
-            pred.puntos_obtenidos = 50
-        else:
-            pred.puntos_obtenidos = 0
-            
-    db.commit()
-    
-    # Recalculate group rankings
-    recalcular_puntos_grupo(db, group_id)
-    
-    return {"detail": f"Campeón '{req.equipo_campeon}' definido para el grupo y puntos recalculados."}
 
