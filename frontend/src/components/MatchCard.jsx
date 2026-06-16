@@ -16,7 +16,9 @@ const MatchCard = ({
     equipo_visitante,
     goles_local,
     goles_visitante,
-    finalizado
+    finalizado,
+    status,
+    minute
   } = match
 
   // State for prediction inputs
@@ -101,13 +103,17 @@ const MatchCard = ({
   const canUseJoker = !hasJokerUsed || (prediction && prediction.usa_joker)
   const canUseDoble = !hasDobleUsed || (prediction && prediction.usa_doble)
 
+  const isLive = status === 'IN_PLAY' || status === 'PAUSED' || status === 'LIVE'
+
   return (
     <div className={`glass-card rounded-3xl p-5 flex flex-col gap-4 border transition-all duration-300 ${
       finalizado 
         ? 'border-slate-800/80 bg-slate-900/30' 
-        : timeState.isStarted 
-          ? 'border-yellow-600/30 bg-yellow-500/5' 
-          : 'border-slate-800 hover:border-soccer-green/20'
+        : isLive 
+          ? 'border-red-500/30 bg-red-500/5'
+          : timeState.isStarted 
+            ? 'border-yellow-600/30 bg-yellow-500/5' 
+            : 'border-slate-800 hover:border-soccer-green/20'
     }`}>
       
       {/* Card Header (Fase / Date / Badges) */}
@@ -120,6 +126,11 @@ const MatchCard = ({
           {finalizado ? (
             <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-400 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
               Terminado
+            </span>
+          ) : isLive ? (
+            <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block"></span>
+              En Vivo {minute ? `(${minute}')` : ''}
             </span>
           ) : timeState.isStarted ? (
             <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse">
@@ -148,26 +159,40 @@ const MatchCard = ({
         </div>
 
         {/* Goals Inputs / Real Result */}
-        <div className="flex items-center justify-center gap-2">
-          <input
-            type="number"
-            min="0"
-            disabled={isInputDisabled}
-            value={golesLocal}
-            onChange={(e) => setGolesLocal(e.target.value)}
-            className="w-12 h-12 bg-slate-950/60 border border-slate-800 focus:border-soccer-green rounded-xl text-center font-extrabold text-lg text-slate-100 disabled:opacity-75 disabled:bg-slate-900/30 disabled:border-slate-800/50"
-            placeholder="-"
-          />
-          <span className="text-slate-600 font-bold">vs</span>
-          <input
-            type="number"
-            min="0"
-            disabled={isInputDisabled}
-            value={golesVisitante}
-            onChange={(e) => setGolesVisitante(e.target.value)}
-            className="w-12 h-12 bg-slate-950/60 border border-slate-800 focus:border-soccer-green rounded-xl text-center font-extrabold text-lg text-slate-100 disabled:opacity-75 disabled:bg-slate-900/30 disabled:border-slate-800/50"
-            placeholder="-"
-          />
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
+            <input
+              type="number"
+              min="0"
+              disabled={isInputDisabled}
+              value={golesLocal}
+              onChange={(e) => setGolesLocal(e.target.value)}
+              className="w-12 h-12 bg-slate-950/60 border border-slate-800 focus:border-soccer-green rounded-xl text-center font-extrabold text-lg text-slate-100 disabled:opacity-75 disabled:bg-slate-900/30 disabled:border-slate-800/50"
+              placeholder="-"
+            />
+            <span className="text-slate-600 font-bold">vs</span>
+            <input
+              type="number"
+              min="0"
+              disabled={isInputDisabled}
+              value={golesVisitante}
+              onChange={(e) => setGolesVisitante(e.target.value)}
+              className="w-12 h-12 bg-slate-950/60 border border-slate-800 focus:border-soccer-green rounded-xl text-center font-extrabold text-lg text-slate-100 disabled:opacity-75 disabled:bg-slate-900/30 disabled:border-slate-800/50"
+              placeholder="-"
+            />
+          </div>
+
+          {/* Live Score Display */}
+          {isLive && (
+            <div className="flex items-center justify-center gap-1.5 py-0.5 px-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <span className="text-[9px] text-red-400 uppercase tracking-widest font-black">
+                En Vivo:
+              </span>
+              <span className="text-xs font-black text-slate-200">
+                {goles_local !== null ? goles_local : 0} - {goles_visitante !== null ? goles_visitante : 0}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Visitor Team */}

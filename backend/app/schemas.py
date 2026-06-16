@@ -75,6 +75,8 @@ class PartidoResponse(PartidoBase):
     goles_local: Optional[int] = None
     goles_visitante: Optional[int] = None
     finalizado: bool
+    status: Optional[str] = "SCHEDULED"
+    minute: Optional[int] = None
 
     class Config:
         from_attributes = True

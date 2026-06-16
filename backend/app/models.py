@@ -70,6 +70,8 @@ class Partido(Base):
     goles_local = Column(Integer, nullable=True)
     goles_visitante = Column(Integer, nullable=True)
     finalizado = Column(Boolean, default=False)
+    status = Column(String, default="SCHEDULED")
+    minute = Column(Integer, nullable=True)
 
     # Relationships
     predicciones = relationship("Prediccion", back_populates="partido", cascade="all, delete-orphan")

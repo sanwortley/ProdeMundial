@@ -22,6 +22,24 @@ logger = logging.getLogger(__name__)
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
+# Migrate: add status column to partidos if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE partidos ADD COLUMN status VARCHAR DEFAULT 'SCHEDULED'"))
+        conn.commit()
+        logger.info("Added status column to partidos table (migration)")
+    except Exception:
+        pass
+
+# Migrate: add minute column to partidos if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE partidos ADD COLUMN minute INTEGER"))
+        conn.commit()
+        logger.info("Added minute column to partidos table (migration)")
+    except Exception:
+        pass
+
 # Migrate existing databases: add is_admin column if missing
 with engine.connect() as conn:
     try:
@@ -147,6 +165,8 @@ with engine.connect() as conn:
         logger.info("Added fuerza column to rondas_duelo (migration)")
     except Exception:
         pass  # Column already exists
+
+
 
 # Migrate: convert partido.fecha from Argentina time (UTC-3) to UTC.
 # Old seed data stored dates in Argentina local time (e.g., 16:00 for the

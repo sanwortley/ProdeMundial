@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from sqlalchemy import cast, Date
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -183,25 +183,14 @@ def update_bulk_match_results(
 @limiter.limit("10/minute")
 async def auto_sync_endpoint(
     request: Request,
+    background_tasks: BackgroundTasks,
     current_user: Usuario = Depends(get_current_user)
 ):
     from ..sync_manager import run_full_sync
-
-    result = run_full_sync()
-
-    detail_parts = []
-    if result["updated"] > 0:
-        detail_parts.append(f"Sincronizados {result['updated']} partidos")
-    if result.get("errors"):
-        for err in result["errors"]:
-            if "FOOTBALL_DATA_KEY" not in err:
-                detail_parts.append(f"Error: {err}")
-
-    detail = ". ".join(detail_parts) if detail_parts else "Sin partidos nuevos para sincronizar."
-
+    background_tasks.add_task(run_full_sync)
     return {
-        "detail": detail,
-        "updated": result["updated"],
-        "groups": result["groups"],
+        "detail": "Sincronización iniciada en segundo plano.",
+        "updated": 0,
+        "groups": 0,
     }
 

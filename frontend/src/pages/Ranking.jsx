@@ -11,9 +11,6 @@ const Ranking = () => {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // Trigger auto-sync of finished matches (non-blocking)
-    api.post('/matches/auto-sync').catch(() => {})
-
     const fetchRanking = async () => {
       try {
         const response = await api.get(`/ranking/${groupId}`)

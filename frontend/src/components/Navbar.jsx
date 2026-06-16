@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, BookOpen } from 'lucide-react'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -36,8 +36,13 @@ const Navbar = () => {
               Mis Grupos
             </Link>
             <Link to="/rules"
-              className="hidden md:inline text-[11px] font-bold uppercase tracking-widest text-wc-muted hover:text-wc-white transition-colors">
-              Reglamento
+              className="text-wc-muted hover:text-wc-white transition-colors flex items-center"
+              title="Reglamento"
+            >
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-widest">
+                Reglamento
+              </span>
+              <BookOpen className="w-4 h-4 md:hidden" />
             </Link>
 
             {/* User chip */}

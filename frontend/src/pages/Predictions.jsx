@@ -26,9 +26,6 @@ const Predictions = () => {
 
   // Fetch all necessary data
   const fetchData = async () => {
-    // Trigger auto-sync of finished matches (non-blocking)
-    api.post('/matches/auto-sync').catch(() => {})
-
     try {
       const [matchesRes, predsRes, champRes, groupRes] = await Promise.all([
         api.get('/matches'),

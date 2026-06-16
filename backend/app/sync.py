@@ -156,23 +156,10 @@ def sync_results():
         affected_group_ids = set()
 
         for game in games:
-            finished_flag = str(game.get("finished", "FALSE")).upper()
-            if finished_flag != "TRUE":
-                continue
-
             home_en = game.get("home_team_name_en", "")
             away_en = game.get("away_team_name_en", "")
             home_score = game.get("home_score")
             away_score = game.get("away_score")
-
-            if home_score is None or away_score is None:
-                continue
-
-            try:
-                g_local = int(home_score)
-                g_visit = int(away_score)
-            except (ValueError, TypeError):
-                continue
 
             # Translate team names to Spanish
             home_es = translate_team(home_en)
@@ -193,21 +180,50 @@ def sync_results():
                 partido = local_match_map.get(key2)
 
             if partido:
-                partido.goles_local = g_local
-                partido.goles_visitante = g_visit
-                partido.finalizado = True
-                affected_match_ids.append(partido.id_partido)
-                updated_count += 1
-                logger.info(f"  ✓ {partido.equipo_local} {g_local}-{g_visit} {partido.equipo_visitante}")
+                finished_flag = str(game.get("finished", "FALSE")).upper()
+                
+                # Determine status
+                if finished_flag == "TRUE":
+                    status = "FINISHED"
+                elif finished_flag in ("LIVE", "IN_PLAY") or (partido.fecha and datetime.now(timezone.utc) > partido.fecha.replace(tzinfo=timezone.utc)):
+                    status = "IN_PLAY"
+                else:
+                    status = "SCHEDULED"
 
-                # Advance knockout bracket if needed
-                is_knockout = partido.fase not in ["Fecha 1", "Fecha 2", "Fecha 3"]
-                if is_knockout:
-                    check_and_advance_knockouts(
-                        db, partido.id_partido,
-                        partido.equipo_local, partido.equipo_visitante,
-                        g_local, g_visit
-                    )
+                partido.status = status
+                partido.minute = game.get("minute") # Get minute if available in API
+
+                try:
+                    g_local = int(home_score) if home_score is not None else None
+                    g_visit = int(away_score) if away_score is not None else None
+                except (ValueError, TypeError):
+                    g_local = None
+                    g_visit = None
+
+                if g_local is not None and g_visit is not None:
+                    # Update live score for matches in progress
+                    if not partido.finalizado:
+                        if partido.goles_local != g_local or partido.goles_visitante != g_visit:
+                            partido.goles_local = g_local
+                            partido.goles_visitante = g_visit
+                            # Note: we don't add to affected_match_ids since those are only for finalized score recalculation
+
+                    if finished_flag == "TRUE" and not partido.finalizado:
+                        partido.goles_local = g_local
+                        partido.goles_visitante = g_visit
+                        partido.finalizado = True
+                        affected_match_ids.append(partido.id_partido)
+                        updated_count += 1
+                        logger.info(f"  ✓ {partido.equipo_local} {g_local}-{g_visit} {partido.equipo_visitante} (Finalizado)")
+
+                        # Advance knockout bracket if needed
+                        is_knockout = partido.fase not in ["Fecha 1", "Fecha 2", "Fecha 3"]
+                        if is_knockout:
+                            check_and_advance_knockouts(
+                                db, partido.id_partido,
+                                partido.equipo_local, partido.equipo_visitante,
+                                g_local, g_visit
+                            )
 
         if affected_match_ids:
             db.commit()
