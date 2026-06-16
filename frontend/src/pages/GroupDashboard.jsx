@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
-import { Trophy, CalendarDays, Settings, ShieldAlert, Award, Star, Flame, Target, Edit3, Check, X } from 'lucide-react'
+import { Trophy, CalendarDays, Settings, ShieldAlert, Award, Star, Flame, Target, Edit3, Check, X, ArrowLeft } from 'lucide-react'
 
 const GroupDashboard = () => {
   const { groupId } = useParams()
@@ -94,15 +94,24 @@ const GroupDashboard = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-24 md:pb-8 flex flex-col gap-6">
       
-      {/* Group Title and Info */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] text-soccer-green font-black uppercase tracking-widest">Dashboard del Grupo</span>
-        <h1 className="font-extrabold text-3xl tracking-tight text-slate-100">
-          {group.nombre_grupo}
-        </h1>
-        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-          Código: {group.codigo_invitacion}
-        </p>
+      {/* Group Title and Info with Back Button */}
+      <div className="flex items-center gap-4">
+        <Link 
+          to="/my-groups"
+          className="p-2 bg-slate-800/80 border border-slate-700 hover:text-soccer-green rounded-xl transition-all"
+          title="Volver a mis grupos"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-soccer-green font-black uppercase tracking-widest">Dashboard del Grupo</span>
+          <h1 className="font-extrabold text-2xl sm:text-3xl tracking-tight text-slate-100">
+            {group.nombre_grupo}
+          </h1>
+          <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+            Código: {group.codigo_invitacion}
+          </p>
+        </div>
       </div>
 
       {/* User Stats Summary */}
