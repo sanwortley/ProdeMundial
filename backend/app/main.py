@@ -188,6 +188,27 @@ except Exception as e:
 finally:
     db.close()
 
+# Migrate: reset champion prediction points to 0 on startup if any user got 50 points by mistake
+db = SessionLocal()
+try:
+    from .models import PrediccionCampeon, Grupo
+    from .utils import recalcular_puntos_grupo
+    # Check if there are any champion predictions with points > 0
+    over_limit = db.query(PrediccionCampeon).filter(PrediccionCampeon.puntos_obtenidos > 0).all()
+    if over_limit:
+        db.query(PrediccionCampeon).update({PrediccionCampeon.puntos_obtenidos: 0})
+        db.commit()
+        logger.info("Auto-reset champion prediction points to 0 on startup")
+        
+        # Recalculate points for all groups
+        for group in db.query(Grupo).all():
+            recalcular_puntos_grupo(db, group.id_grupo)
+            logger.info(f"Recalculated points for group {group.nombre_grupo}")
+except Exception as e:
+    logger.warning("Could not auto-reset champion points: %s", e)
+finally:
+    db.close()
+
 # Seed players from football-data.org
 db = SessionLocal()
 try:
