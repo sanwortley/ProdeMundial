@@ -77,6 +77,7 @@ class PartidoResponse(PartidoBase):
     finalizado: bool
     status: Optional[str] = "SCHEDULED"
     minute: Optional[int] = None
+    injury_time: Optional[int] = 0
 
     class Config:
         from_attributes = True

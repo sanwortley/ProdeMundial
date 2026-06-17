@@ -220,7 +220,8 @@ def auto_sync_matches(db: Session) -> dict:
             "finalizado": status == "FINISHED",
             "fecha": match_date,
             "status": status,
-            "minute": f.get("minute")
+            "minute": f.get("minute"),
+            "injury_time": f.get("injuryTime") or 0
         }
 
     updated_ids = []
@@ -236,10 +237,13 @@ def auto_sync_matches(db: Session) -> dict:
                 p.fecha = api_match["fecha"]
                 any_changed = True
                 
-            # Sync live status and minute if changed
-            if p.status != api_match["status"] or p.minute != api_match["minute"]:
+            # Sync live status, minute and injury_time if changed
+            if (p.status != api_match["status"] or 
+                p.minute != api_match["minute"] or 
+                p.injury_time != api_match["injury_time"]):
                 p.status = api_match["status"]
                 p.minute = api_match["minute"]
+                p.injury_time = api_match["injury_time"]
                 any_changed = True
 
             # Sync live scores for non-finalized matches

@@ -40,6 +40,15 @@ with engine.connect() as conn:
     except Exception:
         pass
 
+# Migrate: add injury_time column to partidos if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE partidos ADD COLUMN injury_time INTEGER DEFAULT 0"))
+        conn.commit()
+        logger.info("Added injury_time column to partidos table (migration)")
+    except Exception:
+        pass
+
 # Migrate existing databases: add is_admin column if missing
 with engine.connect() as conn:
     try:

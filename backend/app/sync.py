@@ -199,6 +199,8 @@ def sync_results():
                 # Determine status
                 if finished_flag == "TRUE":
                     status = "FINISHED"
+                elif finished_flag in ("PAUSED", "HT", "HALFTIME"):
+                    status = "PAUSED"
                 elif finished_flag in ("LIVE", "IN_PLAY") or (partido.fecha and datetime.now(timezone.utc) > partido.fecha.replace(tzinfo=timezone.utc)):
                     status = "IN_PLAY"
                 else:
@@ -206,6 +208,7 @@ def sync_results():
 
                 partido.status = status
                 partido.minute = game.get("minute") # Get minute if available in API
+                partido.injury_time = game.get("injury_time") or game.get("injuryTime") or 0
 
                 try:
                     g_local = int(home_score) if home_score is not None else None

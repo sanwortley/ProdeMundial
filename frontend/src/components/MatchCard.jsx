@@ -18,7 +18,8 @@ const MatchCard = ({
     goles_visitante,
     finalizado,
     status,
-    minute
+    minute,
+    injury_time
   } = match
 
   // State for prediction inputs
@@ -105,6 +106,32 @@ const MatchCard = ({
 
   const isLive = status === 'IN_PLAY' || status === 'PAUSED' || status === 'LIVE'
 
+  const getLiveTimeLabel = () => {
+    if (status === 'PAUSED') {
+      return 'Entretiempo'
+    }
+    if (minute !== undefined && minute !== null) {
+      if (minute === 45 && injury_time > 0) {
+        return `45+${injury_time}'`
+      }
+      if (minute === 90 && injury_time > 0) {
+        return `90+${injury_time}'`
+      }
+      return `${minute}'`
+    }
+    // Fallback estimation using matchDate
+    const now = new Date()
+    const elapsedMinutes = Math.floor((now - matchDate) / 60000)
+    if (elapsedMinutes < 1) return "1'"
+    if (elapsedMinutes <= 45) return `${elapsedMinutes}'`
+    if (elapsedMinutes <= 60) return "45+'"
+    const secondHalfMinute = elapsedMinutes - 15
+    if (secondHalfMinute <= 90) return `${secondHalfMinute}'`
+    return "90+'"
+  }
+
+  const timeLabel = isLive ? getLiveTimeLabel() : ''
+
   return (
     <div className={`glass-card rounded-3xl p-5 flex flex-col gap-4 border transition-all duration-300 ${
       finalizado 
@@ -130,7 +157,7 @@ const MatchCard = ({
           ) : isLive ? (
             <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block"></span>
-              En Vivo {minute ? `(${minute}')` : ''}
+              {timeLabel === 'Entretiempo' ? 'Entretiempo' : `En Vivo (${timeLabel})`}
             </span>
           ) : timeState.isStarted ? (
             <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse">

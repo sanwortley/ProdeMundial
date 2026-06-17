@@ -72,6 +72,7 @@ class Partido(Base):
     finalizado = Column(Boolean, default=False)
     status = Column(String, default="SCHEDULED")
     minute = Column(Integer, nullable=True)
+    injury_time = Column(Integer, default=0)
 
     # Relationships
     predicciones = relationship("Prediccion", back_populates="partido", cascade="all, delete-orphan")
