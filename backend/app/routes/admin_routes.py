@@ -89,3 +89,37 @@ def simulate_fecha(
         partidos_actualizados=len(partidos),
         grupos_afectados=len(affected_groups),
     )
+
+
+class UserPointAdjustment(BaseModel):
+    nombre: str
+    puntos: int
+
+
+@router.post("/admin/ajustar-puntos")
+def ajustar_puntos(
+    req: UserPointAdjustment,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(_require_admin),
+):
+    """Add/remove points from a user in ALL groups. Admin only."""
+    from ..models import GrupoUsuario
+
+    usuarios = db.query(Usuario).filter(Usuario.nombre == req.nombre).all()
+    if not usuarios:
+        raise HTTPException(status_code=404, detail=f"Usuario '{req.nombre}' no encontrado")
+
+    total_updated = 0
+    for user in usuarios:
+        member_entries = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario).all()
+        for entry in member_entries:
+            entry.puntos_totales = (entry.puntos_totales or 0) + req.puntos
+            total_updated += 1
+
+    db.commit()
+    return {
+        "detail": f"Se ajustaron {req.puntos} puntos a '{req.nombre}' en {total_updated} grupo(s)",
+        "usuario": req.nombre,
+        "puntos_ajuste": req.puntos,
+        "grupos_afectados": total_updated,
+    }
