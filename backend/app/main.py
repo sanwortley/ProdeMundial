@@ -147,6 +147,29 @@ try:
     if db.query(Partido).count() == 0:
         db.add_all(seed_matches)
         db.commit()
+        logger.info("Seeded database with match fixtures.")
+finally:
+    db.close()
+
+# Migration: force all match dates to seed_data values regardless of existing DB content.
+# This fixes deployments where the DB was seeded with wrong Argentina-local times.
+db = SessionLocal()
+try:
+    existing = db.query(Partido).count()
+    if existing > 0:
+        from sqlalchemy import case
+        fixed = 0
+        for sm in seed_matches:
+            match = db.query(Partido).filter(Partido.id_partido == sm.id_partido).first()
+            if match and match.fecha != sm.fecha:
+                logger.info(f"Fixed date for {match.equipo_local} vs {match.equipo_visitante}: {match.fecha} -> {sm.fecha}")
+                match.fecha = sm.fecha
+                fixed += 1
+        if fixed > 0:
+            db.commit()
+            logger.info(f"Forced seed date correction: updated {fixed} match date(s)")
+except Exception as e:
+    logger.warning(f"Could not force seed date correction: {e}")
 finally:
     db.close()
 
