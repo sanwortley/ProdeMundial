@@ -75,6 +75,39 @@ const Predictions = () => {
     fetchData()
   }, [groupId])
 
+  // Auto-refresh match data every 30s when there are live or recently-started matches
+  useEffect(() => {
+    const refreshMatches = async () => {
+      try {
+        const [matchesRes, predsRes] = await Promise.all([
+          api.get('/matches'),
+          api.get(`/predictions/group/${groupId}`)
+        ])
+        setMatches(matchesRes.data)
+        setPredictions(predsRes.data)
+      } catch (_) {
+        // silently ignore polling errors
+      }
+    }
+
+    const hasLiveOrRecent = () => {
+      const now = new Date()
+      return matches.some(m => {
+        if (m.finalizado) return false
+        const kickoff = new Date(m.fecha.endsWith('Z') || m.fecha.includes('+') ? m.fecha : m.fecha + 'Z')
+        const elapsed = (now - kickoff) / 60000  // minutes since kickoff
+        return elapsed >= 0 && elapsed <= 130     // match started within last ~130 min
+      })
+    }
+
+    if (matches.length === 0) return
+
+    // Poll every 30s if there's an active match, otherwise every 5 min
+    const interval = hasLiveOrRecent() ? 30000 : 300000
+    const timer = setInterval(refreshMatches, interval)
+    return () => clearInterval(timer)
+  }, [groupId, matches])
+
   // Save/Update prediction handler
   const handleSavePrediction = async (predictionPayload) => {
     // Inject group ID
