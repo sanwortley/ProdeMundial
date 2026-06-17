@@ -16,6 +16,7 @@ from .seed_data import seed_matches
 from .seed_players import seed_players
 from .routes import auth_routes, group_routes, match_routes, prediction_routes, ranking_routes, fantasy_routes, fantasy_h2h_routes, admin_routes, duel_routes
 from .sync_manager import run_full_sync
+from .sync_service import sync_all_dates
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,17 @@ try:
     if db.query(Partido).count() == 0:
         db.add_all(seed_matches)
         db.commit()
+finally:
+    db.close()
+
+# Sync kickoff times from API at startup to fix any wrong seed dates
+# This runs synchronously so times are corrected before the scheduler starts
+db = SessionLocal()
+try:
+    date_sync_result = sync_all_dates(db)
+    logger.info(f"Startup date sync: {date_sync_result}")
+except Exception as e:
+    logger.warning(f"Could not sync match dates at startup: {e}")
 finally:
     db.close()
 

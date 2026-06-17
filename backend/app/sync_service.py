@@ -163,6 +163,71 @@ def check_and_advance_knockouts(db: Session, match_id: int, equipo_local: str, e
     db.commit()
 
 
+def sync_all_dates(db: Session) -> dict:
+    """Synchronizes ONLY match kickoff times from football-data.org API.
+    Should be called at startup to correct any wrong seed dates.
+    Does not touch match results or finalized status."""
+    import logging
+    logger = logging.getLogger(__name__)
+    api_key = os.getenv("FOOTBALL_DATA_KEY") or "bdd0e2ba30bd4368a5591ea1f1696067"
+
+    partidos = db.query(Partido).all()
+    if not partidos:
+        return {"synced_dates": 0}
+
+    req = urllib.request.Request(FOOTBALL_DATA_URL)
+    req.add_header("X-Auth-Token", api_key)
+
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    data = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=15.0, context=ctx) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                break
+        except Exception as e:
+            import time
+            time.sleep(1)
+
+    if not data:
+        return {"synced_dates": 0, "error": "Could not reach football-data.org"}
+
+    fixtures = data.get("matches", [])
+    fixtures_map = {}
+    for f in fixtures:
+        home = map_english_to_spanish(f.get("homeTeam", {}).get("name", ""))
+        away = map_english_to_spanish(f.get("awayTeam", {}).get("name", ""))
+        utc_date_str = f.get("utcDate", "")
+        match_date = None
+        if utc_date_str:
+            try:
+                match_date = datetime.strptime(utc_date_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                pass
+        if match_date:
+            fixtures_map[(normalize_name(home), normalize_name(away))] = match_date
+
+    synced = 0
+    for p in partidos:
+        key = (normalize_name(p.equipo_local), normalize_name(p.equipo_visitante))
+        if key in fixtures_map:
+            api_date = fixtures_map[key]
+            if p.fecha != api_date:
+                logger.info(f"Correcting date for {p.equipo_local} vs {p.equipo_visitante}: {p.fecha} -> {api_date}")
+                p.fecha = api_date
+                synced += 1
+
+    if synced > 0:
+        db.commit()
+        logger.info(f"sync_all_dates: corrected {synced} match kickoff time(s) from API")
+
+    return {"synced_dates": synced}
+
+
 def auto_sync_matches(db: Session) -> dict:
     api_key = os.getenv("FOOTBALL_DATA_KEY") or "bdd0e2ba30bd4368a5591ea1f1696067"
 

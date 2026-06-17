@@ -47,20 +47,28 @@ const MatchCard = ({
   }, [prediction])
 
   // Force UTC parsing by appending Z (backend stores dates in UTC)
+  // The browser automatically converts this to the user's local timezone
   const fechaUtc = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z'
   const matchDate = new Date(fechaUtc)
-  const [timeState, setTimeState] = useState({ isStarted: false, formattedTime: '' })
+  const [timeState, setTimeState] = useState({ isStarted: false, formattedTime: '', timeOnly: '' })
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date()
       const isStarted = now >= matchDate
-      
-      // Format match date nicely
-      const options = { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }
-      const formattedTime = matchDate.toLocaleDateString('es-AR', options)
-      
-      setTimeState({ isStarted, formattedTime })
+
+      // Format day/month in local timezone
+      const day   = matchDate.getDate().toString().padStart(2, '0')
+      const month = (matchDate.getMonth() + 1).toString().padStart(2, '0')
+      // Format HH:MM in the user's local timezone (always 24h)
+      const hours   = matchDate.getHours().toString().padStart(2, '0')
+      const minutes = matchDate.getMinutes().toString().padStart(2, '0')
+
+      const dateStr = `${day}/${month}`
+      const timeStr = `${hours}:${minutes}`
+      const formattedTime = `${dateStr} ${timeStr}hs`
+
+      setTimeState({ isStarted, formattedTime, timeOnly: `${timeStr}hs` })
     }
 
     updateTime()
@@ -168,7 +176,7 @@ const MatchCard = ({
               <span className="text-[9px] bg-soccer-green/10 border border-soccer-green/20 text-soccer-green font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
                 Pendiente
               </span>
-              <span className="text-xs text-slate-400 font-semibold">
+              <span className="text-xs text-slate-400 font-semibold" title="Horario en tu zona horaria local">
                 {timeState.formattedTime}
               </span>
             </div>
