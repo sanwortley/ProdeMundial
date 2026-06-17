@@ -28,12 +28,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear local storage and redirect if token is expired/invalid
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-        window.location.href = '/login'
+        window.location.href = '/login?session=expired'
       }
+      // Return pending promise to prevent component error flash while redirecting
+      return new Promise(() => {})
     }
     return Promise.reject(error)
   }

@@ -13,6 +13,7 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [expired, setExpired] = useState(location.search.includes('session=expired'))
 
   const from = location.state?.from?.pathname || '/my-groups'
 
@@ -87,6 +88,12 @@ const Login = () => {
           <div className="mb-4 text-xs font-semibold px-4 py-3 rounded-lg text-center"
             style={{ background: 'rgba(232,25,44,0.1)', border: '1px solid rgba(232,25,44,0.2)', color: '#e8192c' }}>
             {error}
+          </div>
+        )}
+        {expired && !error && (
+          <div className="mb-4 text-xs font-semibold px-4 py-3 rounded-lg text-center"
+            style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10b981' }}>
+            Tu sesión expiró. Iniciá sesión de nuevo.
           </div>
         )}
 
