@@ -117,8 +117,9 @@ def recalcular_puntos_grupo(db: Session, id_grupo: int):
         if pred_campeon:
             puntos_campeon = pred_campeon.puntos_obtenidos
             
-        # Total points
-        miembro.puntos_totales = puntos_base + streak_bonus + puntos_campeon
+        # Total points (including manual extra adjustments)
+        puntos_extra = miembro.puntos_extra or 0
+        miembro.puntos_totales = puntos_base + streak_bonus + puntos_campeon + puntos_extra
         miembro.cantidad_exactos = exact_hits
         miembro.mejor_racha = mejor_racha
         

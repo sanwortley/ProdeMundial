@@ -261,6 +261,15 @@ try:
 finally:
     db.close()
 
+# Migration: add puntos_extra column to grupo_usuarios if missing
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE grupo_usuarios ADD COLUMN puntos_extra INTEGER DEFAULT 0"))
+        conn.commit()
+        logger.info("Added puntos_extra column to grupo_usuarios table (migration)")
+    except Exception:
+        pass  # Column already exists
+
 # Migration: mark matches as IN_PLAY if their kickoff time has passed but status still SCHEDULED
 db = SessionLocal()
 try:

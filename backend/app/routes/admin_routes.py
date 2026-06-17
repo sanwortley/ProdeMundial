@@ -122,6 +122,7 @@ def ajustar_puntos(
     total_updated = 0
     member_entries = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario).all()
     for entry in member_entries:
+        entry.puntos_extra = (entry.puntos_extra or 0) + req.puntos
         entry.puntos_totales = (entry.puntos_totales or 0) + req.puntos
         total_updated += 1
 

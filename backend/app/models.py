@@ -46,6 +46,7 @@ class GrupoUsuario(Base):
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), nullable=False)
     rol = Column(String, default="member")  # 'admin' for creator, 'member' for others
     puntos_totales = Column(Integer, default=0)
+    puntos_extra = Column(Integer, default=0)
     cantidad_exactos = Column(Integer, default=0)
     mejor_racha = Column(Integer, default=0)
     fecha_union = Column(DateTime, default=datetime.datetime.utcnow)
