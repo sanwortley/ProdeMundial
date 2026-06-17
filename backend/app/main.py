@@ -18,6 +18,7 @@ from .routes import auth_routes, group_routes, match_routes, prediction_routes, 
 from .sync_manager import run_full_sync
 from .sync_service import sync_all_dates
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # Initialize database tables
