@@ -114,8 +114,8 @@ const MatchCard = ({
 
   const isLive = status === 'IN_PLAY' || status === 'PAUSED' || status === 'LIVE'
 
-  const getLiveTimeLabel = () => {
-    if (status === 'PAUSED') {
+  const getLiveTimeLabel = (useStatus = true) => {
+    if (useStatus && status === 'PAUSED') {
       return 'Entretiempo'
     }
     if (minute !== undefined && minute !== null) {
@@ -138,7 +138,8 @@ const MatchCard = ({
     return "90+'"
   }
 
-  const timeLabel = isLive ? getLiveTimeLabel() : ''
+  const timeLabel = isLive ? getLiveTimeLabel() : (timeState.isStarted ? getLiveTimeLabel(false) : '')
+  const showScore = isLive || (timeState.isStarted && !finalizado)
 
   return (
     <div className={`glass-card rounded-3xl p-5 flex flex-col gap-4 border transition-all duration-300 ${
@@ -168,8 +169,9 @@ const MatchCard = ({
               {timeLabel === 'Entretiempo' ? 'Entretiempo' : `En Vivo (${timeLabel})`}
             </span>
           ) : timeState.isStarted ? (
-            <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse">
-              Jugando
+            <span className="text-[9px] bg-red-500/10 border border-red-500/20 text-red-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block"></span>
+              Jugando ({timeLabel})
             </span>
           ) : (
             <div className="flex items-center gap-2">
@@ -218,10 +220,10 @@ const MatchCard = ({
           </div>
 
           {/* Live Score Display */}
-          {isLive && (
+          {showScore && (
             <div className="flex items-center justify-center gap-1.5 py-0.5 px-2 bg-red-500/10 border border-red-500/20 rounded-lg">
               <span className="text-[9px] text-red-400 uppercase tracking-widest font-black">
-                En Vivo:
+                {isLive ? 'En Vivo:' : 'Jugando:'}
               </span>
               <span className="text-xs font-black text-slate-200">
                 {goles_local !== null ? goles_local : 0} - {goles_visitante !== null ? goles_visitante : 0}

@@ -260,6 +260,21 @@ try:
 finally:
     db.close()
 
+# Migration: mark matches as IN_PLAY if their kickoff time has passed but status still SCHEDULED
+db = SessionLocal()
+try:
+    from datetime import datetime, timezone
+    now_utc = datetime.now(timezone.utc)
+    for m in db.query(Partido).filter(Partido.status == "SCHEDULED").all():
+        if m.fecha and now_utc > m.fecha.replace(tzinfo=timezone.utc):
+            m.status = "IN_PLAY"
+            logger.info(f"Startup fallback: set match {m.id_partido} ({m.equipo_local} vs {m.equipo_visitante}) to IN_PLAY (time already passed)")
+    db.commit()
+except Exception as e:
+    logger.warning(f"Could not mark passed matches as IN_PLAY: {e}")
+finally:
+    db.close()
+
 scheduler = AsyncIOScheduler()
 
 
