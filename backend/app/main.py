@@ -283,10 +283,10 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         run_full_sync,
         trigger="interval",
-        minutes=5,
+        minutes=1,
         id="auto_sync_matches",
         replace_existing=True,
-        name="Auto-sync resultados (API gratuita + football-data.org)",
+        name="Auto-sync resultados (cada 1 min)",
     )
     scheduler.start()
     yield
