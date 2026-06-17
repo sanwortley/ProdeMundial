@@ -319,6 +319,14 @@ async def websocket_duel(websocket: WebSocket, duelo_id: int, token: str = WsQue
     await handle_duel_ws(websocket, duelo_id, token)
 
 
+@app.get("/api/health")
+def read_root():
+    return {
+        "message": "Bienvenido a la API de Prode Mundial",
+        "status": "online",
+        "version": "1.0.0",
+    }
+
 # Serve built frontend in production (catch-all for SPA)
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
@@ -336,12 +344,3 @@ if frontend_dist.exists():
     logger.info(f"Serving frontend from {frontend_dist}")
 else:
     logger.info("Frontend dist not found, API-only mode")
-
-
-@app.get("/api/health")
-def read_root():
-    return {
-        "message": "Bienvenido a la API de Prode Mundial",
-        "status": "online",
-        "version": "1.0.0",
-    }

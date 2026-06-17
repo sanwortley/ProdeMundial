@@ -102,24 +102,33 @@ def ajustar_puntos(
     db: Session = Depends(get_db),
     admin: Usuario = Depends(_require_admin),
 ):
-    """Add/remove points from a user in ALL groups. Admin only."""
+    """Add/remove points from a user in ALL groups. Admin only.
+    Searches by partial name match. If exactly one user matches, adjusts points.
+    If multiple match, returns the list without modifying anything."""
     from ..models import GrupoUsuario
 
-    usuarios = db.query(Usuario).filter(Usuario.nombre == req.nombre).all()
-    if not usuarios:
-        raise HTTPException(status_code=404, detail=f"Usuario '{req.nombre}' no encontrado")
+    usuarios = db.query(Usuario).filter(Usuario.nombre.ilike(f"%{req.nombre}%")).all()
 
+    if len(usuarios) == 0:
+        return {"detail": f"Ningún usuario coincide con '{req.nombre}'", "coincidencias": []}
+
+    if len(usuarios) > 1:
+        return {
+            "detail": f"Varios usuarios coinciden con '{req.nombre}', especificá más",
+            "coincidencias": [{"id_usuario": u.id_usuario, "nombre": u.nombre, "email": u.email} for u in usuarios],
+        }
+
+    user = usuarios[0]
     total_updated = 0
-    for user in usuarios:
-        member_entries = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario).all()
-        for entry in member_entries:
-            entry.puntos_totales = (entry.puntos_totales or 0) + req.puntos
-            total_updated += 1
+    member_entries = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario).all()
+    for entry in member_entries:
+        entry.puntos_totales = (entry.puntos_totales or 0) + req.puntos
+        total_updated += 1
 
     db.commit()
     return {
-        "detail": f"Se ajustaron {req.puntos} puntos a '{req.nombre}' en {total_updated} grupo(s)",
-        "usuario": req.nombre,
+        "detail": f"Se ajustaron {req.puntos} puntos a '{user.nombre}' en {total_updated} grupo(s)",
+        "usuario": user.nombre,
         "puntos_ajuste": req.puntos,
         "grupos_afectados": total_updated,
     }
