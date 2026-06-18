@@ -56,61 +56,68 @@ seed_matches = [
     Partido(id_partido=24, fecha=datetime.datetime(2026, 6, 18, 2,  0), fase='Fecha 1', equipo_local='Uzbekistán',      equipo_visitante='Colombia'),
 
     # ── FECHA 2 ──────────────────────────────────────────────────────
-    # Jun 18
-    Partido(id_partido=25, fecha=datetime.datetime(2026, 6, 18, 22, 0), fase='Fecha 2', equipo_local='México',                 equipo_visitante='Corea del Sur'),
-    Partido(id_partido=26, fecha=datetime.datetime(2026, 6, 18, 16, 0), fase='Fecha 2', equipo_local='Sudáfrica',              equipo_visitante='República Checa'),
-    Partido(id_partido=27, fecha=datetime.datetime(2026, 6, 18, 19, 0), fase='Fecha 2', equipo_local='Canadá',                 equipo_visitante='Qatar'),
-    Partido(id_partido=28, fecha=datetime.datetime(2026, 6, 18, 22, 0), fase='Fecha 2', equipo_local='Bosnia y Herzegovina',   equipo_visitante='Suiza'),
-    # Jun 19
-    Partido(id_partido=29, fecha=datetime.datetime(2026, 6, 19, 19, 0), fase='Fecha 2', equipo_local='Brasil',                 equipo_visitante='Haití'),
-    Partido(id_partido=30, fecha=datetime.datetime(2026, 6, 19, 22, 0), fase='Fecha 2', equipo_local='Marruecos',              equipo_visitante='Escocia'),
-    Partido(id_partido=31, fecha=datetime.datetime(2026, 6, 19, 22, 0), fase='Fecha 2', equipo_local='Estados Unidos',         equipo_visitante='Australia'),
-    Partido(id_partido=32, fecha=datetime.datetime(2026, 6, 20, 1,  0), fase='Fecha 2', equipo_local='Paraguay',               equipo_visitante='Turquía'),
-    # Jun 20
-    Partido(id_partido=33, fecha=datetime.datetime(2026, 6, 20, 17, 0), fase='Fecha 2', equipo_local='Alemania',               equipo_visitante='Costa de Marfil'),
-    Partido(id_partido=34, fecha=datetime.datetime(2026, 6, 20, 20, 0), fase='Fecha 2', equipo_local='Curazao',                equipo_visitante='Ecuador'),
-    Partido(id_partido=35, fecha=datetime.datetime(2026, 6, 20, 20, 0), fase='Fecha 2', equipo_local='Bélgica',                equipo_visitante='Irán'),
-    Partido(id_partido=36, fecha=datetime.datetime(2026, 6, 20, 23, 0), fase='Fecha 2', equipo_local='Egipto',                 equipo_visitante='Nueva Zelanda'),
-    # Jun 21
-    Partido(id_partido=37, fecha=datetime.datetime(2026, 6, 21, 17, 0), fase='Fecha 2', equipo_local='España',                 equipo_visitante='Arabia Saudita'),
-    Partido(id_partido=38, fecha=datetime.datetime(2026, 6, 21, 20, 0), fase='Fecha 2', equipo_local='Cabo Verde',             equipo_visitante='Uruguay'),
-    Partido(id_partido=39, fecha=datetime.datetime(2026, 6, 21, 20, 0), fase='Fecha 2', equipo_local='Francia',                equipo_visitante='Irak'),
-    Partido(id_partido=40, fecha=datetime.datetime(2026, 6, 21, 23, 0), fase='Fecha 2', equipo_local='Senegal',                equipo_visitante='Noruega'),
-    # Jun 22
+    # Jun 18 – CZEvRSA (Atlanta 16:00), SUIvBIH (LA 19:00), CANvQAT (Vancouver 22:00)
+    Partido(id_partido=26, fecha=datetime.datetime(2026, 6, 18, 16, 0), fase='Fecha 2', equipo_local='República Checa',        equipo_visitante='Sudáfrica'),
+    Partido(id_partido=28, fecha=datetime.datetime(2026, 6, 18, 19, 0), fase='Fecha 2', equipo_local='Suiza',                  equipo_visitante='Bosnia y Herzegovina'),
+    Partido(id_partido=27, fecha=datetime.datetime(2026, 6, 18, 22, 0), fase='Fecha 2', equipo_local='Canadá',                 equipo_visitante='Qatar'),
+    # Jun 19 – MEXvKOR (Zapopan 01:00+1), USAvAUS (Seattle 19:00), SCOvMAR (Foxborough 22:00)
+    Partido(id_partido=25, fecha=datetime.datetime(2026, 6, 19, 1,  0), fase='Fecha 2', equipo_local='México',                 equipo_visitante='Corea del Sur'),
+    Partido(id_partido=31, fecha=datetime.datetime(2026, 6, 19, 19, 0), fase='Fecha 2', equipo_local='Estados Unidos',         equipo_visitante='Australia'),
+    Partido(id_partido=30, fecha=datetime.datetime(2026, 6, 19, 22, 0), fase='Fecha 2', equipo_local='Escocia',                equipo_visitante='Marruecos'),
+    # Jun 20 – BRAvHAI (Philadelphia 01:00+1), TURvPAR (Santa Clara 03:00+1), NEDvSWE (Houston 17:00), GERvCIV (Toronto 20:00)
+    Partido(id_partido=29, fecha=datetime.datetime(2026, 6, 20, 1,  0), fase='Fecha 2', equipo_local='Brasil',                 equipo_visitante='Haití'),
+    Partido(id_partido=32, fecha=datetime.datetime(2026, 6, 20, 3,  0), fase='Fecha 2', equipo_local='Turquía',                equipo_visitante='Paraguay'),
+    Partido(id_partido=47, fecha=datetime.datetime(2026, 6, 20, 17, 0), fase='Fecha 2', equipo_local='Países Bajos',           equipo_visitante='Suecia'),
+    Partido(id_partido=33, fecha=datetime.datetime(2026, 6, 20, 20, 0), fase='Fecha 2', equipo_local='Alemania',               equipo_visitante='Costa de Marfil'),
+    # Jun 21 – ECUvCUR (Kansas City 00:00+1), TUNvJPN (Guadalupe 04:00+1), ESPvKSA (Atlanta 16:00), BELvIRN (LA 19:00), URUvCPV (Miami 22:00)
+    Partido(id_partido=34, fecha=datetime.datetime(2026, 6, 21, 0,  0), fase='Fecha 2', equipo_local='Ecuador',                equipo_visitante='Curazao'),
+    Partido(id_partido=48, fecha=datetime.datetime(2026, 6, 21, 4,  0), fase='Fecha 2', equipo_local='Túnez',                  equipo_visitante='Japón'),
+    Partido(id_partido=37, fecha=datetime.datetime(2026, 6, 21, 16, 0), fase='Fecha 2', equipo_local='España',                 equipo_visitante='Arabia Saudita'),
+    Partido(id_partido=35, fecha=datetime.datetime(2026, 6, 21, 19, 0), fase='Fecha 2', equipo_local='Bélgica',                equipo_visitante='Irán'),
+    Partido(id_partido=38, fecha=datetime.datetime(2026, 6, 21, 22, 0), fase='Fecha 2', equipo_local='Uruguay',                equipo_visitante='Cabo Verde'),
+    # Jun 22 – NZLvEGY (Vancouver 01:00+1), ARGvAUT (Arlington 17:00), FRAvIRQ (Philadelphia 21:00)
+    Partido(id_partido=36, fecha=datetime.datetime(2026, 6, 22, 1,  0), fase='Fecha 2', equipo_local='Nueva Zelanda',          equipo_visitante='Egipto'),
     Partido(id_partido=41, fecha=datetime.datetime(2026, 6, 22, 17, 0), fase='Fecha 2', equipo_local='Argentina',              equipo_visitante='Austria'),
-    Partido(id_partido=42, fecha=datetime.datetime(2026, 6, 22, 20, 0), fase='Fecha 2', equipo_local='Argelia',                equipo_visitante='Jordania'),
-    Partido(id_partido=43, fecha=datetime.datetime(2026, 6, 22, 20, 0), fase='Fecha 2', equipo_local='Portugal',               equipo_visitante='Uzbekistán'),
-    Partido(id_partido=44, fecha=datetime.datetime(2026, 6, 22, 23, 0), fase='Fecha 2', equipo_local='Congo',                  equipo_visitante='Colombia'),
-    Partido(id_partido=45, fecha=datetime.datetime(2026, 6, 22, 23, 0), fase='Fecha 2', equipo_local='Inglaterra',             equipo_visitante='Ghana'),
-    Partido(id_partido=46, fecha=datetime.datetime(2026, 6, 23, 2,  0), fase='Fecha 2', equipo_local='Croacia',                equipo_visitante='Panamá'),
-    Partido(id_partido=47, fecha=datetime.datetime(2026, 6, 22, 20, 0), fase='Fecha 2', equipo_local='Países Bajos',           equipo_visitante='Suecia'),
-    Partido(id_partido=48, fecha=datetime.datetime(2026, 6, 22, 23, 0), fase='Fecha 2', equipo_local='Japón',                  equipo_visitante='Túnez'),
+    Partido(id_partido=39, fecha=datetime.datetime(2026, 6, 22, 21, 0), fase='Fecha 2', equipo_local='Francia',                equipo_visitante='Irak'),
+    # Jun 23 – NORvSEN (New Jersey 00:00+1), JORvALG (Santa Clara 03:00+1), PORvUZB (Houston 17:00), ENGvGHA (Foxborough 20:00), PANvCRO (Toronto 23:00)
+    Partido(id_partido=40, fecha=datetime.datetime(2026, 6, 23, 0,  0), fase='Fecha 2', equipo_local='Noruega',                equipo_visitante='Senegal'),
+    Partido(id_partido=42, fecha=datetime.datetime(2026, 6, 23, 3,  0), fase='Fecha 2', equipo_local='Jordania',               equipo_visitante='Argelia'),
+    Partido(id_partido=43, fecha=datetime.datetime(2026, 6, 23, 17, 0), fase='Fecha 2', equipo_local='Portugal',               equipo_visitante='Uzbekistán'),
+    Partido(id_partido=45, fecha=datetime.datetime(2026, 6, 23, 20, 0), fase='Fecha 2', equipo_local='Inglaterra',             equipo_visitante='Ghana'),
+    Partido(id_partido=46, fecha=datetime.datetime(2026, 6, 23, 23, 0), fase='Fecha 2', equipo_local='Panamá',                 equipo_visitante='Croacia'),
+    # Jun 24 – COLvCOD (Zapopan 02:00+1)
+    Partido(id_partido=44, fecha=datetime.datetime(2026, 6, 24, 2,  0), fase='Fecha 2', equipo_local='Colombia',               equipo_visitante='Congo'),
 
     # ── FECHA 3 ──────────────────────────────────────────────────────
-    Partido(id_partido=49, fecha=datetime.datetime(2026, 6, 23, 19, 0), fase='Fecha 3', equipo_local='República Checa',        equipo_visitante='México'),
-    Partido(id_partido=50, fecha=datetime.datetime(2026, 6, 23, 19, 0), fase='Fecha 3', equipo_local='Sudáfrica',              equipo_visitante='Corea del Sur'),
-    Partido(id_partido=51, fecha=datetime.datetime(2026, 6, 24, 0,  0), fase='Fecha 3', equipo_local='Suiza',                  equipo_visitante='Canadá'),
-    Partido(id_partido=52, fecha=datetime.datetime(2026, 6, 24, 0,  0), fase='Fecha 3', equipo_local='Bosnia y Herzegovina',   equipo_visitante='Qatar'),
-    Partido(id_partido=53, fecha=datetime.datetime(2026, 6, 24, 19, 0), fase='Fecha 3', equipo_local='Escocia',                equipo_visitante='Brasil'),
-    Partido(id_partido=54, fecha=datetime.datetime(2026, 6, 24, 19, 0), fase='Fecha 3', equipo_local='Marruecos',              equipo_visitante='Haití'),
-    Partido(id_partido=55, fecha=datetime.datetime(2026, 6, 25, 0,  0), fase='Fecha 3', equipo_local='Turquía',                equipo_visitante='Estados Unidos'),
-    Partido(id_partido=56, fecha=datetime.datetime(2026, 6, 25, 0,  0), fase='Fecha 3', equipo_local='Paraguay',               equipo_visitante='Australia'),
-    Partido(id_partido=57, fecha=datetime.datetime(2026, 6, 25, 19, 0), fase='Fecha 3', equipo_local='Ecuador',                equipo_visitante='Alemania'),
-    Partido(id_partido=58, fecha=datetime.datetime(2026, 6, 25, 19, 0), fase='Fecha 3', equipo_local='Curazao',                equipo_visitante='Costa de Marfil'),
-    Partido(id_partido=59, fecha=datetime.datetime(2026, 6, 26, 0,  0), fase='Fecha 3', equipo_local='Egipto',                 equipo_visitante='Irán'),
-    Partido(id_partido=60, fecha=datetime.datetime(2026, 6, 26, 0,  0), fase='Fecha 3', equipo_local='Bélgica',                equipo_visitante='Nueva Zelanda'),
-    Partido(id_partido=61, fecha=datetime.datetime(2026, 6, 26, 19, 0), fase='Fecha 3', equipo_local='España',                 equipo_visitante='Uruguay'),
-    Partido(id_partido=62, fecha=datetime.datetime(2026, 6, 26, 19, 0), fase='Fecha 3', equipo_local='Cabo Verde',             equipo_visitante='Arabia Saudita'),
-    Partido(id_partido=63, fecha=datetime.datetime(2026, 6, 27, 0,  0), fase='Fecha 3', equipo_local='Noruega',                equipo_visitante='Francia'),
-    Partido(id_partido=64, fecha=datetime.datetime(2026, 6, 27, 0,  0), fase='Fecha 3', equipo_local='Senegal',                equipo_visitante='Irak'),
-    Partido(id_partido=65, fecha=datetime.datetime(2026, 6, 27, 19, 0), fase='Fecha 3', equipo_local='Jordania',               equipo_visitante='Argentina'),
-    Partido(id_partido=66, fecha=datetime.datetime(2026, 6, 27, 19, 0), fase='Fecha 3', equipo_local='Argelia',                equipo_visitante='Austria'),
-    Partido(id_partido=67, fecha=datetime.datetime(2026, 6, 27, 22, 0), fase='Fecha 3', equipo_local='Inglaterra',             equipo_visitante='Panamá'),
-    Partido(id_partido=68, fecha=datetime.datetime(2026, 6, 27, 22, 0), fase='Fecha 3', equipo_local='Croacia',                equipo_visitante='Ghana'),
-    Partido(id_partido=69, fecha=datetime.datetime(2026, 6, 28, 1,  0), fase='Fecha 3', equipo_local='Portugal',               equipo_visitante='Colombia'),
-    Partido(id_partido=70, fecha=datetime.datetime(2026, 6, 28, 1,  0), fase='Fecha 3', equipo_local='Congo',                  equipo_visitante='Uzbekistán'),
-    Partido(id_partido=71, fecha=datetime.datetime(2026, 6, 27, 16, 0), fase='Fecha 3', equipo_local='Túnez',                  equipo_visitante='Países Bajos'),
-    Partido(id_partido=72, fecha=datetime.datetime(2026, 6, 27, 16, 0), fase='Fecha 3', equipo_local='Japón',                  equipo_visitante='Suecia'),
+    # Jun 24 – BIHvQAT (Seattle 19:00), SUICAN (Vancouver 19:00), SCOvBRA (Miami 22:00), MARvHAI (Atlanta 22:00)
+    Partido(id_partido=52, fecha=datetime.datetime(2026, 6, 24, 19, 0), fase='Fecha 3', equipo_local='Bosnia y Herzegovina',   equipo_visitante='Qatar'),
+    Partido(id_partido=51, fecha=datetime.datetime(2026, 6, 24, 19, 0), fase='Fecha 3', equipo_local='Suiza',                  equipo_visitante='Canadá'),
+    Partido(id_partido=53, fecha=datetime.datetime(2026, 6, 24, 22, 0), fase='Fecha 3', equipo_local='Escocia',                equipo_visitante='Brasil'),
+    Partido(id_partido=54, fecha=datetime.datetime(2026, 6, 24, 22, 0), fase='Fecha 3', equipo_local='Marruecos',              equipo_visitante='Haití'),
+    # Jun 25 – RSAvKOR (Guadalupe 01:00+1), CZEvMEX (Mexico City 01:00+1), CURvCIV (Philadelphia 20:00), ECUvGER (New Jersey 20:00), JPNvSWE (Arlington 23:00), TUNvNED (Kansas City 23:00)
+    Partido(id_partido=50, fecha=datetime.datetime(2026, 6, 25, 1,  0), fase='Fecha 3', equipo_local='Sudáfrica',              equipo_visitante='Corea del Sur'),
+    Partido(id_partido=49, fecha=datetime.datetime(2026, 6, 25, 1,  0), fase='Fecha 3', equipo_local='República Checa',        equipo_visitante='México'),
+    Partido(id_partido=58, fecha=datetime.datetime(2026, 6, 25, 20, 0), fase='Fecha 3', equipo_local='Curazao',                equipo_visitante='Costa de Marfil'),
+    Partido(id_partido=57, fecha=datetime.datetime(2026, 6, 25, 20, 0), fase='Fecha 3', equipo_local='Ecuador',                equipo_visitante='Alemania'),
+    Partido(id_partido=72, fecha=datetime.datetime(2026, 6, 25, 23, 0), fase='Fecha 3', equipo_local='Japón',                  equipo_visitante='Suecia'),
+    Partido(id_partido=71, fecha=datetime.datetime(2026, 6, 25, 23, 0), fase='Fecha 3', equipo_local='Túnez',                  equipo_visitante='Países Bajos'),
+    # Jun 26 – PARvAUS (Santa Clara 02:00+1), TURvUSA (LA 02:00+1), SENvIRQ (Toronto 19:00), NORvFRA (Foxborough 19:00)
+    Partido(id_partido=56, fecha=datetime.datetime(2026, 6, 26, 2,  0), fase='Fecha 3', equipo_local='Paraguay',               equipo_visitante='Australia'),
+    Partido(id_partido=55, fecha=datetime.datetime(2026, 6, 26, 2,  0), fase='Fecha 3', equipo_local='Turquía',                equipo_visitante='Estados Unidos'),
+    Partido(id_partido=64, fecha=datetime.datetime(2026, 6, 26, 19, 0), fase='Fecha 3', equipo_local='Senegal',                equipo_visitante='Irak'),
+    Partido(id_partido=63, fecha=datetime.datetime(2026, 6, 26, 19, 0), fase='Fecha 3', equipo_local='Noruega',                equipo_visitante='Francia'),
+    # Jun 27 – CPVvKSA (Houston 00:00+1), URUvESP (Zapopan 00:00+1), EGYvIRN (Seattle 03:00+1), NZLvBEL (Vancouver 03:00+1), PANvENG (New Jersey 21:00), CROvGHA (Philadelphia 21:00), COLvPOR (Miami 23:30), CODvUZB (Atlanta 23:30)
+    Partido(id_partido=62, fecha=datetime.datetime(2026, 6, 27, 0,  0), fase='Fecha 3', equipo_local='Cabo Verde',             equipo_visitante='Arabia Saudita'),
+    Partido(id_partido=61, fecha=datetime.datetime(2026, 6, 27, 0,  0), fase='Fecha 3', equipo_local='Uruguay',                equipo_visitante='España'),
+    Partido(id_partido=59, fecha=datetime.datetime(2026, 6, 27, 3,  0), fase='Fecha 3', equipo_local='Egipto',                 equipo_visitante='Irán'),
+    Partido(id_partido=60, fecha=datetime.datetime(2026, 6, 27, 3,  0), fase='Fecha 3', equipo_local='Nueva Zelanda',          equipo_visitante='Bélgica'),
+    Partido(id_partido=67, fecha=datetime.datetime(2026, 6, 27, 21, 0), fase='Fecha 3', equipo_local='Panamá',                 equipo_visitante='Inglaterra'),
+    Partido(id_partido=68, fecha=datetime.datetime(2026, 6, 27, 21, 0), fase='Fecha 3', equipo_local='Croacia',                equipo_visitante='Ghana'),
+    Partido(id_partido=69, fecha=datetime.datetime(2026, 6, 27, 23, 30), fase='Fecha 3', equipo_local='Colombia',               equipo_visitante='Portugal'),
+    Partido(id_partido=70, fecha=datetime.datetime(2026, 6, 27, 23, 30), fase='Fecha 3', equipo_local='Congo',                  equipo_visitante='Uzbekistán'),
+    # Jun 28 – ALGvAUT (Kansas City 02:00+1), JORvARG (Arlington 02:00+1)
+    Partido(id_partido=66, fecha=datetime.datetime(2026, 6, 28, 2,  0), fase='Fecha 3', equipo_local='Argelia',                equipo_visitante='Austria'),
+    Partido(id_partido=65, fecha=datetime.datetime(2026, 6, 28, 2,  0), fase='Fecha 3', equipo_local='Jordania',               equipo_visitante='Argentina'),
 
     # ── DIECISEISAVOS DE FINAL ────────────────────────────────────────
     Partido(id_partido=73,  fecha=datetime.datetime(2026, 7, 2,  16, 0), fase='Dieciseisavos de Final', equipo_local='1A',              equipo_visitante='2B'),

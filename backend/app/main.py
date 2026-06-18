@@ -285,26 +285,23 @@ except Exception as e:
 finally:
     db.close()
 
-# Migration: fix wrong team assignments in Fecha 2 and 3 (groups G/H/K/L were mixed in seed_data)
+# Migration: fix wrong team assignments in Fecha 2 and 3 to match API order
 db = SessionLocal()
 try:
     fixes = {
-        35: ("Bélgica", "Irán"),
-        36: ("Egipto", "Nueva Zelanda"),
-        37: ("España", "Arabia Saudita"),
-        38: ("Cabo Verde", "Uruguay"),
-        43: ("Portugal", "Uzbekistán"),
-        44: ("Congo", "Colombia"),
-        45: ("Inglaterra", "Ghana"),
-        46: ("Croacia", "Panamá"),
-        59: ("Egipto", "Irán"),
-        60: ("Bélgica", "Nueva Zelanda"),
-        61: ("España", "Uruguay"),
-        62: ("Cabo Verde", "Arabia Saudita"),
-        67: ("Inglaterra", "Panamá"),
-        68: ("Croacia", "Ghana"),
-        69: ("Portugal", "Colombia"),
-        70: ("Congo", "Uzbekistán"),
+        26: ("República Checa", "Sudáfrica"),
+        28: ("Suiza", "Bosnia y Herzegovina"),
+        30: ("Escocia", "Marruecos"),
+        32: ("Turquía", "Paraguay"),
+        34: ("Ecuador", "Curazao"),
+        36: ("Nueva Zelanda", "Egipto"),
+        38: ("Uruguay", "Cabo Verde"),
+        40: ("Noruega", "Senegal"),
+        42: ("Jordania", "Argelia"),
+        44: ("Colombia", "Congo"),
+        46: ("Panamá", "Croacia"),
+        48: ("Túnez", "Japón"),
+        61: ("Uruguay", "España"),
     }
     from .models import Partido
     for pid, (local, visit) in fixes.items():
@@ -330,6 +327,72 @@ try:
         logger.info(f"Deleted {preds} predictions for Fecha 2 and 3 matches (team assignments corrected)")
 except Exception as e:
     logger.warning(f"Could not delete Fecha 2/3 predictions: {e}")
+finally:
+    db.close()
+
+# Migration: fix UTC kickoff times for Fecha 2 and 3 matches to match official schedule
+db = SessionLocal()
+try:
+    import datetime as _dt
+    time_fixes = {
+        25: _dt.datetime(2026, 6, 19, 1, 0),
+        27: _dt.datetime(2026, 6, 18, 22, 0),
+        28: _dt.datetime(2026, 6, 18, 19, 0),
+        29: _dt.datetime(2026, 6, 20, 1, 0),
+        31: _dt.datetime(2026, 6, 19, 19, 0),
+        32: _dt.datetime(2026, 6, 20, 3, 0),
+        33: _dt.datetime(2026, 6, 20, 20, 0),
+        34: _dt.datetime(2026, 6, 21, 0, 0),
+        35: _dt.datetime(2026, 6, 21, 19, 0),
+        36: _dt.datetime(2026, 6, 22, 1, 0),
+        37: _dt.datetime(2026, 6, 21, 16, 0),
+        38: _dt.datetime(2026, 6, 21, 22, 0),
+        39: _dt.datetime(2026, 6, 22, 21, 0),
+        40: _dt.datetime(2026, 6, 23, 0, 0),
+        42: _dt.datetime(2026, 6, 23, 3, 0),
+        43: _dt.datetime(2026, 6, 23, 17, 0),
+        44: _dt.datetime(2026, 6, 24, 2, 0),
+        45: _dt.datetime(2026, 6, 23, 20, 0),
+        46: _dt.datetime(2026, 6, 23, 23, 0),
+        47: _dt.datetime(2026, 6, 20, 17, 0),
+        48: _dt.datetime(2026, 6, 21, 4, 0),
+        49: _dt.datetime(2026, 6, 25, 1, 0),
+        50: _dt.datetime(2026, 6, 25, 1, 0),
+        51: _dt.datetime(2026, 6, 24, 19, 0),
+        52: _dt.datetime(2026, 6, 24, 19, 0),
+        53: _dt.datetime(2026, 6, 24, 22, 0),
+        54: _dt.datetime(2026, 6, 24, 22, 0),
+        55: _dt.datetime(2026, 6, 26, 2, 0),
+        56: _dt.datetime(2026, 6, 26, 2, 0),
+        57: _dt.datetime(2026, 6, 25, 20, 0),
+        58: _dt.datetime(2026, 6, 25, 20, 0),
+        59: _dt.datetime(2026, 6, 27, 3, 0),
+        60: _dt.datetime(2026, 6, 27, 3, 0),
+        61: _dt.datetime(2026, 6, 27, 0, 0),
+        62: _dt.datetime(2026, 6, 27, 0, 0),
+        63: _dt.datetime(2026, 6, 26, 19, 0),
+        64: _dt.datetime(2026, 6, 26, 19, 0),
+        65: _dt.datetime(2026, 6, 28, 2, 0),
+        66: _dt.datetime(2026, 6, 28, 2, 0),
+        67: _dt.datetime(2026, 6, 27, 21, 0),
+        68: _dt.datetime(2026, 6, 27, 21, 0),
+        69: _dt.datetime(2026, 6, 27, 23, 30),
+        70: _dt.datetime(2026, 6, 27, 23, 30),
+        71: _dt.datetime(2026, 6, 25, 23, 0),
+        72: _dt.datetime(2026, 6, 25, 23, 0),
+    }
+    fixed_times = 0
+    for pid, new_fecha in time_fixes.items():
+        m = db.query(Partido).filter(Partido.id_partido == pid).first()
+        if m and m.fecha != new_fecha:
+            logger.info(f"Fixed time for match {pid} ({m.equipo_local} vs {m.equipo_visitante}): {m.fecha} -> {new_fecha}")
+            m.fecha = new_fecha
+            fixed_times += 1
+    if fixed_times > 0:
+        db.commit()
+        logger.info(f"Fixed {fixed_times} match kickoff times (UTC correction)")
+except Exception as e:
+    logger.warning(f"Could not fix match times: {e}")
 finally:
     db.close()
 

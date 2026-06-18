@@ -73,6 +73,8 @@ TEAM_NAME_MAP = {
     # Group K
     "portugal": "Portugal",
     "congo": "Congo",
+    "democratic republic of the congo": "Congo",
+    "dr congo": "Congo",
     "uzbekistan": "Uzbekistán",
     "colombia": "Colombia",
     # Group L
