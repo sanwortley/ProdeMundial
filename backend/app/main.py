@@ -285,6 +285,40 @@ except Exception as e:
 finally:
     db.close()
 
+# Migration: fix wrong team assignments in Fecha 2 and 3 (groups G/H/K/L were mixed in seed_data)
+db = SessionLocal()
+try:
+    fixes = {
+        35: ("Bélgica", "Irán"),
+        36: ("Egipto", "Nueva Zelanda"),
+        37: ("España", "Arabia Saudita"),
+        38: ("Cabo Verde", "Uruguay"),
+        43: ("Portugal", "Uzbekistán"),
+        44: ("Congo", "Colombia"),
+        45: ("Inglaterra", "Ghana"),
+        46: ("Croacia", "Panamá"),
+        59: ("Egipto", "Irán"),
+        60: ("Bélgica", "Nueva Zelanda"),
+        61: ("España", "Uruguay"),
+        62: ("Cabo Verde", "Arabia Saudita"),
+        67: ("Inglaterra", "Panamá"),
+        68: ("Croacia", "Ghana"),
+        69: ("Portugal", "Colombia"),
+        70: ("Congo", "Uzbekistán"),
+    }
+    from .models import Partido
+    for pid, (local, visit) in fixes.items():
+        m = db.query(Partido).filter(Partido.id_partido == pid).first()
+        if m and (m.equipo_local != local or m.equipo_visitante != visit):
+            logger.info(f"Fixed match {pid}: {m.equipo_local} vs {m.equipo_visitante} -> {local} vs {visit}")
+            m.equipo_local = local
+            m.equipo_visitante = visit
+    db.commit()
+except Exception as e:
+    logger.warning(f"Could not fix team assignments: {e}")
+finally:
+    db.close()
+
 scheduler = AsyncIOScheduler()
 
 

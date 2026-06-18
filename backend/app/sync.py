@@ -41,25 +41,25 @@ TEAM_NAME_MAP = {
     "turkey": "Turquía",
     # Group E
     "germany": "Alemania",
-    "curacao": "Curazao",
-    "netherlands": "Países Bajos",
-    "japan": "Japón",
-    # Group F
+    "ecuador": "Ecuador",
     "ivory coast": "Costa de Marfil",
     "cote d'ivoire": "Costa de Marfil",
-    "ecuador": "Ecuador",
-    "sweden": "Suecia",
+    "curacao": "Curazao",
+    # Group F
+    "netherlands": "Países Bajos",
+    "japan": "Japón",
     "tunisia": "Túnez",
+    "sweden": "Suecia",
     # Group G
-    "spain": "España",
-    "cape verde": "Cabo Verde",
     "belgium": "Bélgica",
+    "iran": "Irán",
     "egypt": "Egipto",
+    "new zealand": "Nueva Zelanda",
     # Group H
+    "spain": "España",
     "saudi arabia": "Arabia Saudita",
     "uruguay": "Uruguay",
-    "iran": "Irán",
-    "new zealand": "Nueva Zelanda",
+    "cape verde": "Cabo Verde",
     # Group I
     "france": "Francia",
     "senegal": "Senegal",
@@ -73,13 +73,13 @@ TEAM_NAME_MAP = {
     # Group K
     "portugal": "Portugal",
     "congo": "Congo",
-    "england": "Inglaterra",
-    "croatia": "Croacia",
-    # Group L
-    "ghana": "Ghana",
-    "panama": "Panamá",
     "uzbekistan": "Uzbekistán",
     "colombia": "Colombia",
+    # Group L
+    "england": "Inglaterra",
+    "croatia": "Croacia",
+    "ghana": "Ghana",
+    "panama": "Panamá",
 }
 
 

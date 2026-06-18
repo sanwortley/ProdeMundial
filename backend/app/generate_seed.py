@@ -5,14 +5,14 @@ groups = {
     "B": ["Canadá", "Bosnia y Herzegovina", "Qatar", "Suiza"],
     "C": ["Brasil", "Marruecos", "Haití", "Escocia"],
     "D": ["Estados Unidos", "Paraguay", "Australia", "Turquía"],
-    "E": ["Alemania", "Curazao", "Costa de Marfil", "Ecuador"],
-    "F": ["España", "Cabo Verde", "Bélgica", "Egipto"],
-    "G": ["Arabia Saudita", "Uruguay", "Irán", "Nueva Zelanda"],
-    "H": ["Francia", "Senegal", "Irak", "Noruega"],
-    "I": ["Argentina", "Argelia", "Austria", "Jordania"],
-    "J": ["Portugal", "Congo", "Inglaterra", "Croacia"],
-    "K": ["Ghana", "Panamá", "Uzbekistán", "Colombia"],
-    "L": ["Países Bajos", "Japón", "Suecia", "Túnez"]
+    "E": ["Alemania", "Ecuador", "Costa de Marfil", "Curazao"],
+    "F": ["Países Bajos", "Japón", "Túnez", "Suecia"],
+    "G": ["Bélgica", "Irán", "Egipto", "Nueva Zelanda"],
+    "H": ["España", "Arabia Saudita", "Uruguay", "Cabo Verde"],
+    "I": ["Francia", "Senegal", "Irak", "Noruega"],
+    "J": ["Argentina", "Argelia", "Austria", "Jordania"],
+    "K": ["Portugal", "Congo", "Uzbekistán", "Colombia"],
+    "L": ["Inglaterra", "Croacia", "Ghana", "Panamá"]
 }
 
 # Argentina timezone offset: UTC-3 (convert local times to UTC by adding 3 hours)
