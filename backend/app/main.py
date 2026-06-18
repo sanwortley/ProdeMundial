@@ -319,17 +319,17 @@ except Exception as e:
 finally:
     db.close()
 
-# Migration: delete predictions for Fecha 2 matches (team assignments changed)
+# Migration: delete predictions for Fecha 2 and 3 matches (team assignments changed)
 db = SessionLocal()
 try:
     from .models import Prediccion, PrediccionCampeon
-    fecha2_ids = list(range(25, 49))
-    preds = db.query(Prediccion).filter(Prediccion.id_partido.in_(fecha2_ids)).delete(synchronize_session=False)
+    affected_ids = list(range(25, 73))
+    preds = db.query(Prediccion).filter(Prediccion.id_partido.in_(affected_ids)).delete(synchronize_session=False)
     db.commit()
     if preds > 0:
-        logger.info(f"Deleted {preds} predictions for Fecha 2 matches (team assignments corrected)")
+        logger.info(f"Deleted {preds} predictions for Fecha 2 and 3 matches (team assignments corrected)")
 except Exception as e:
-    logger.warning(f"Could not delete Fecha 2 predictions: {e}")
+    logger.warning(f"Could not delete Fecha 2/3 predictions: {e}")
 finally:
     db.close()
 
