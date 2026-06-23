@@ -133,3 +133,41 @@ def ajustar_puntos(
         "puntos_ajuste": req.puntos,
         "grupos_afectados": total_updated,
     }
+
+
+class MatchTeamsUpdate(BaseModel):
+    equipo_local: str
+    equipo_visitante: str
+
+
+@router.put("/admin/matches/{match_id}/teams")
+def update_match_teams(
+    match_id: int,
+    req: MatchTeamsUpdate,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(_require_admin),
+):
+    """Update team names for a match (useful for setting qualified teams in knockouts). Admin only."""
+    partido = db.query(Partido).filter(Partido.id_partido == match_id).first()
+    if not partido:
+        raise HTTPException(status_code=404, detail="Partido no encontrado")
+    
+    old_local = partido.equipo_local
+    old_visitante = partido.equipo_visitante
+    
+    partido.equipo_local = req.equipo_local.strip()
+    partido.equipo_visitante = req.equipo_visitante.strip()
+    
+    db.commit()
+    db.refresh(partido)
+    
+    return {
+        "detail": f"Partido {match_id} actualizado: {old_local} vs {old_visitante} -> {partido.equipo_local} vs {partido.equipo_visitante}",
+        "partido": {
+            "id_partido": partido.id_partido,
+            "fase": partido.fase,
+            "equipo_local": partido.equipo_local,
+            "equipo_visitante": partido.equipo_visitante
+        }
+    }
+
