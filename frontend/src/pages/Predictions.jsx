@@ -262,13 +262,16 @@ const Predictions = () => {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             Filtrar por Equipo
           </label>
-          <input
-            type="text"
-            placeholder="Ej: Argentina, México, España..."
+          <select
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 px-4 bg-slate-950 border border-slate-800/80 rounded-xl text-xs text-slate-200 placeholder:text-slate-650 focus:outline-none focus:border-soccer-green"
-          />
+            className="w-full h-11 px-4 bg-slate-950 border border-slate-800/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-soccer-green"
+          >
+            <option value="">Todos los equipos</option>
+            {equiposMundial.map(eq => (
+              <option key={eq} value={eq}>{eq}</option>
+            ))}
+          </select>
         </div>
       </div>
 
