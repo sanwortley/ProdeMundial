@@ -3,6 +3,7 @@ dist/
 build/
 .env
 __pycache__/
+backend/backups/
 *.pyc
 *.pyo
 .DS_Store

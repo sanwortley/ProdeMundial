@@ -17,6 +17,7 @@ from .seed_players import seed_players
 from .routes import auth_routes, group_routes, match_routes, prediction_routes, ranking_routes, fantasy_routes, fantasy_h2h_routes, admin_routes, duel_routes
 from .sync_manager import run_full_sync
 from .sync_service import sync_all_dates
+from .backup import run_backup
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -316,20 +317,6 @@ except Exception as e:
 finally:
     db.close()
 
-# Migration: delete predictions for Fecha 2 and 3 matches (team assignments changed)
-db = SessionLocal()
-try:
-    from .models import Prediccion, PrediccionCampeon
-    affected_ids = list(range(25, 73))
-    preds = db.query(Prediccion).filter(Prediccion.id_partido.in_(affected_ids)).delete(synchronize_session=False)
-    db.commit()
-    if preds > 0:
-        logger.info(f"Deleted {preds} predictions for Fecha 2 and 3 matches (team assignments corrected)")
-except Exception as e:
-    logger.warning(f"Could not delete Fecha 2/3 predictions: {e}")
-finally:
-    db.close()
-
 # Migration: fix UTC kickoff times for Fecha 2 and 3 matches to match official schedule
 db = SessionLocal()
 try:
@@ -408,6 +395,14 @@ async def lifespan(app: FastAPI):
         id="auto_sync_matches",
         replace_existing=True,
         name="Auto-sync resultados (cada 1 min)",
+    )
+    scheduler.add_job(
+        run_backup,
+        trigger="interval",
+        hours=24,
+        id="auto_backup_db",
+        replace_existing=True,
+        name="Auto-backup DB (cada 24 hs)",
     )
     scheduler.start()
     yield
