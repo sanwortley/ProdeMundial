@@ -1,13 +1,17 @@
+import datetime
+import logging
 import random
+from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from ..database import get_db
-from ..models import Partido, Usuario
+from ..models import Partido, Prediccion, Grupo, GrupoUsuario, Usuario
 from ..auth import get_current_user
 from ..utils import recalcular_puntos_grupo
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin"])
 
 
@@ -170,4 +174,148 @@ def update_match_teams(
             "equipo_visitante": partido.equipo_visitante
         }
     }
+
+
+FECHA2_IDS = list(range(25, 49))
+
+
+def _build_team_confidence(db):
+    fecha1_matches = db.query(Partido).filter(Partido.fase == "Fecha 1").all()
+    fecha1_ids = {m.id_partido for m in fecha1_matches}
+    preds = db.query(Prediccion).filter(Prediccion.id_partido.in_(fecha1_ids)).all()
+    confianza = defaultdict(lambda: defaultdict(lambda: {"favor": 0, "contra": 0, "count": 0}))
+    match_map = {m.id_partido: m for m in fecha1_matches}
+    for p in preds:
+        m = match_map.get(p.id_partido)
+        if not m:
+            continue
+        loc = confianza[p.id_usuario][m.equipo_local]
+        loc["favor"] += p.goles_local_predicho
+        loc["contra"] += p.goles_visitante_predicho
+        loc["count"] += 1
+        vis = confianza[p.id_usuario][m.equipo_visitante]
+        vis["favor"] += p.goles_visitante_predicho
+        vis["contra"] += p.goles_local_predicho
+        vis["count"] += 1
+    return confianza
+
+
+def _build_user_profile(db):
+    fecha1_matches = db.query(Partido).filter(Partido.fase == "Fecha 1").all()
+    fecha1_ids = {m.id_partido for m in fecha1_matches}
+    preds = db.query(Prediccion).filter(Prediccion.id_partido.in_(fecha1_ids)).all()
+    perfiles = defaultdict(lambda: {"total_local": 0, "total_visit": 0, "total_matches": 0})
+    for p in preds:
+        pr = perfiles[p.id_usuario]
+        pr["total_local"] += p.goles_local_predicho
+        pr["total_visit"] += p.goles_visitante_predicho
+        pr["total_matches"] += 1
+    return perfiles
+
+
+def _generar_prediccion(equipo_local, equipo_visitante, confianza_equipos, perfil):
+    c_local = confianza_equipos.get(equipo_local, {"favor": 0, "contra": 0, "count": 0})
+    c_visit = confianza_equipos.get(equipo_visitante, {"favor": 0, "contra": 0, "count": 0})
+    def _net(c):
+        return (c["favor"] - c["contra"]) / max(c["count"], 1)
+    diff = _net(c_local) - _net(c_visit)
+    avg_local = round(perfil["total_local"] / max(perfil["total_matches"], 1))
+    avg_visit = round(perfil["total_visit"] / max(perfil["total_matches"], 1))
+    avg_total = avg_local + avg_visit
+    THRESHOLD = 0.5
+    if diff > THRESHOLD:
+        gd = min(round(abs(diff)), 3)
+        p_local = avg_local + gd
+        p_visit = max(avg_visit - max(gd - 1, 0), 0)
+    elif diff < -THRESHOLD:
+        gd = min(round(abs(diff)), 3)
+        p_local = max(avg_local - max(gd - 1, 0), 0)
+        p_visit = avg_visit + gd
+    else:
+        mitad = round(avg_total / 2)
+        p_local = mitad
+        p_visit = mitad
+    return min(max(p_local, 0), 10), min(max(p_visit, 0), 10)
+
+
+class RecoverResult(BaseModel):
+    total_generated: int
+    total_skipped: int
+    total_inserted: int
+    grupos_afectados: int
+    usuarios_con_perfil: int
+
+
+@router.post("/admin/recover-fecha2")
+def recover_fecha2(
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(_require_admin),
+):
+    """Recupera predicciones de Fecha 2 perdidas. Admin only."""
+    fecha2_matches = db.query(Partido).filter(Partido.id_partido.in_(FECHA2_IDS)).order_by(Partido.id_partido).all()
+    if not fecha2_matches:
+        raise HTTPException(status_code=400, detail="No se encontraron partidos de Fecha 2")
+
+    confianza = _build_team_confidence(db)
+    perfiles = _build_user_profile(db)
+    grupos = db.query(Grupo).all()
+    match_map = {m.id_partido: m for m in fecha2_matches}
+
+    total_generated = 0
+    total_skipped = 0
+    total_inserted = 0
+
+    for grupo in grupos:
+        miembros = db.query(GrupoUsuario).filter(GrupoUsuario.id_grupo == grupo.id_grupo).all()
+        for miembro in miembros:
+            uid = miembro.id_usuario
+            existentes = {
+                p.id_partido
+                for p in db.query(Prediccion).filter(
+                    Prediccion.id_grupo == grupo.id_grupo,
+                    Prediccion.id_usuario == uid,
+                    Prediccion.id_partido.in_(FECHA2_IDS),
+                ).all()
+            }
+            conf_usr = confianza.get(uid, {})
+            perfil_usr = perfiles.get(uid, {"total_local": 1, "total_visit": 1, "total_matches": 1})
+
+            for pid in FECHA2_IDS:
+                if pid in existentes:
+                    total_skipped += 1
+                    continue
+                match = match_map.get(pid)
+                if not match:
+                    continue
+                p_local, p_visit = _generar_prediccion(
+                    match.equipo_local, match.equipo_visitante, conf_usr, perfil_usr,
+                )
+                total_generated += 1
+                pred = Prediccion(
+                    id_usuario=uid,
+                    id_grupo=grupo.id_grupo,
+                    id_partido=pid,
+                    goles_local_predicho=p_local,
+                    goles_visitante_predicho=p_visit,
+                    puntos_obtenidos=0,
+                    usa_joker=False,
+                    usa_doble=False,
+                    fecha_carga=datetime.datetime.utcnow(),
+                )
+                db.add(pred)
+                total_inserted += 1
+
+    db.commit()
+    logger.info(f"Recover Fecha2: {total_inserted} predicciones insertadas")
+
+    for grupo in grupos:
+        recalcular_puntos_grupo(db, grupo.id_grupo)
+
+    return RecoverResult(
+        total_generated=total_generated,
+        total_skipped=total_skipped,
+        total_inserted=total_inserted,
+        grupos_afectados=len(grupos),
+        usuarios_con_perfil=len(perfiles),
+    )
 
