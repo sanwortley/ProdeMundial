@@ -98,6 +98,7 @@ def simulate_fecha(
 class UserPointAdjustment(BaseModel):
     nombre: str
     puntos: int
+    grupo: str | None = None
 
 
 @router.post("/admin/ajustar-puntos")
@@ -106,10 +107,11 @@ def ajustar_puntos(
     db: Session = Depends(get_db),
     admin: Usuario = Depends(_require_admin),
 ):
-    """Add/remove points from a user in ALL groups. Admin only.
+    """Add/remove points from a user. Admin only.
     Searches by partial name match. If exactly one user matches, adjusts points.
-    If multiple match, returns the list without modifying anything."""
-    from ..models import GrupoUsuario
+    If multiple match, returns the list without modifying anything.
+    If `grupo` is provided, only adjusts in that group (partial name match)."""
+    from ..models import Grupo, GrupoUsuario
 
     usuarios = db.query(Usuario).filter(Usuario.nombre.ilike(f"%{req.nombre}%")).all()
 
@@ -123,19 +125,26 @@ def ajustar_puntos(
         }
 
     user = usuarios[0]
-    total_updated = 0
-    member_entries = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario).all()
+
+    query = db.query(GrupoUsuario).filter(GrupoUsuario.id_usuario == user.id_usuario)
+
+    if req.grupo:
+        grupo = db.query(Grupo).filter(Grupo.nombre_grupo.ilike(f"%{req.grupo}%")).first()
+        if not grupo:
+            return {"detail": f"No se encontró el grupo '{req.grupo}'"}
+        query = query.filter(GrupoUsuario.id_grupo == grupo.id_grupo)
+
+    member_entries = query.all()
     for entry in member_entries:
         entry.puntos_extra = (entry.puntos_extra or 0) + req.puntos
         entry.puntos_totales = (entry.puntos_totales or 0) + req.puntos
-        total_updated += 1
 
     db.commit()
     return {
-        "detail": f"Se ajustaron {req.puntos} puntos a '{user.nombre}' en {total_updated} grupo(s)",
+        "detail": f"Se ajustaron {req.puntos} puntos a '{user.nombre}' en {len(member_entries)} grupo(s)",
         "usuario": user.nombre,
         "puntos_ajuste": req.puntos,
-        "grupos_afectados": total_updated,
+        "grupos_afectados": len(member_entries),
     }
 
 
