@@ -194,6 +194,14 @@ def sync_results():
                 key2 = (normalize(home_en), normalize(away_en))
                 partido = local_match_map.get(key2)
 
+            if not partido:
+                # Try reversed home/away order
+                key_rev = (normalize(away_es), normalize(home_es))
+                partido = local_match_map.get(key_rev)
+            if not partido:
+                key_rev = (normalize(away_en), normalize(home_en))
+                partido = local_match_map.get(key_rev)
+
             if partido:
                 finished_flag = str(game.get("finished", "FALSE")).upper()
 

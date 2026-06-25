@@ -294,48 +294,60 @@ def auto_sync_matches(db: Session) -> dict:
     for p in partidos_pendientes:
         p_local = normalize_name(p.equipo_local)
         p_visit = normalize_name(p.equipo_visitante)
-        if (p_local, p_visit) in fixtures_map:
-            api_match = fixtures_map[(p_local, p_visit)]
-            
-            # Sync date/time if it changed and is valid
-            if api_match["fecha"] and p.fecha != api_match["fecha"]:
-                p.fecha = api_match["fecha"]
-                any_changed = True
-                
-            # Sync live status, minute and injury_time if changed
-            if (p.status != api_match["status"] or 
-                p.minute != api_match["minute"] or 
-                p.injury_time != api_match["injury_time"]):
-                p.status = api_match["status"]
-                p.minute = api_match["minute"]
-                p.injury_time = api_match["injury_time"]
-                any_changed = True
 
-            # Sync live scores for non-finalized matches
-            if not p.finalizado:
-                g_l = api_match["goles_local"]
-                g_v = api_match["goles_visitante"]
-                if g_l is not None and g_v is not None:
-                    if p.goles_local != g_l or p.goles_visitante != g_v:
-                        p.goles_local = g_l
-                        p.goles_visitante = g_v
-                        any_changed = True
+        # Find match in API data, trying both home/away orders
+        api_match = fixtures_map.get((p_local, p_visit))
+        score_swapped = False
+        if not api_match:
+            key_rev = (p_visit, p_local)
+            api_match = fixtures_map.get(key_rev)
+            if api_match:
+                score_swapped = True
+
+        if not api_match:
+            continue
+
+        # If we found the match with reversed teams, swap goals
+        g_l = api_match["goles_local"]
+        g_v = api_match["goles_visitante"]
+        if score_swapped:
+            g_l, g_v = g_v, g_l
+
+        # Sync date/time if it changed and is valid
+        if api_match["fecha"] and p.fecha != api_match["fecha"]:
+            p.fecha = api_match["fecha"]
+            any_changed = True
             
-            if api_match["finalizado"]:
-                g_l = api_match["goles_local"]
-                g_v = api_match["goles_visitante"]
-                if g_l is not None and g_v is not None:
-                    # Update if not finalized, or if the score differs (self-healing correction)
-                    if not p.finalizado or p.goles_local != g_l or p.goles_visitante != g_v:
-                        p.goles_local = g_l
-                        p.goles_visitante = g_v
-                        p.finalizado = True
-                        any_changed = True
-                        updated_ids.append(p.id_partido)
-                        check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
-                        
-                        # Auto resolve champion if it is the Final match
-                        if p.fase == 'Final':
+        # Sync live status, minute and injury_time if changed
+        if (p.status != api_match["status"] or 
+            p.minute != api_match["minute"] or 
+            p.injury_time != api_match["injury_time"]):
+            p.status = api_match["status"]
+            p.minute = api_match["minute"]
+            p.injury_time = api_match["injury_time"]
+            any_changed = True
+
+        # Sync live scores for non-finalized matches
+        if not p.finalizado:
+            if g_l is not None and g_v is not None:
+                if p.goles_local != g_l or p.goles_visitante != g_v:
+                    p.goles_local = g_l
+                    p.goles_visitante = g_v
+                    any_changed = True
+        
+        if api_match["finalizado"]:
+            if g_l is not None and g_v is not None:
+                # Update if not finalized, or if the score differs (self-healing correction)
+                if not p.finalizado or p.goles_local != g_l or p.goles_visitante != g_v:
+                    p.goles_local = g_l
+                    p.goles_visitante = g_v
+                    p.finalizado = True
+                    any_changed = True
+                    updated_ids.append(p.id_partido)
+                    check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+                    
+                    # Auto resolve champion if it is the Final match
+                    if p.fase == 'Final':
                             winner = p.equipo_local if g_l >= g_v else p.equipo_visitante
                             from .utils import resolver_campeon_grupo_automatico
                             resolver_campeon_grupo_automatico(db, winner)

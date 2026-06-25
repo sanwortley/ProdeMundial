@@ -17,6 +17,7 @@ import Ranking from './pages/Ranking'
 import GroupSettings from './pages/GroupSettings'
 import Rules from './pages/Rules'
 import Fantasy from './pages/Fantasy'
+import AdminResults from './pages/AdminResults'
 import DueloPage from './pages/DueloPage'
 
 // Components
@@ -103,6 +104,12 @@ function App() {
           <Route path="/groups/:groupId/fantasy" element={
             <ProtectedRoute>
               <Layout><Fantasy /></Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/results" element={
+            <ProtectedRoute>
+              <Layout><AdminResults /></Layout>
             </ProtectedRoute>
           } />
 

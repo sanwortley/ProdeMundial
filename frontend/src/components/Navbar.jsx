@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { LogOut, User, BookOpen } from 'lucide-react'
+import { LogOut, User, BookOpen, Shield } from 'lucide-react'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -44,6 +44,16 @@ const Navbar = () => {
               </span>
               <BookOpen className="w-4 h-4 md:hidden" />
             </Link>
+
+            {user.is_admin && (
+              <Link to="/admin/results"
+                className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-amber-400 hover:text-amber-300 transition-colors"
+                title="Admin Resultados"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Resultados</span>
+              </Link>
+            )}
 
             {/* User chip */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
