@@ -232,7 +232,7 @@ def auto_sync_matches(db: Session) -> dict:
     api_key = os.getenv("FOOTBALL_DATA_KEY") or "bdd0e2ba30bd4368a5591ea1f1696067"
 
     # Query all matches of the tournament to allow correcting/self-healing wrong or simulated results
-    partidos_pendientes = db.query(Partido).order_by(Partido.fecha.asc()).all()
+    partidos_pendientes = db.query(Partido).filter(Partido.finalizado == False).order_by(Partido.fecha.asc()).all()
 
     if not partidos_pendientes:
         return {"updated": 0, "groups": 0, "reason": "Sin partidos en la base de datos"}
