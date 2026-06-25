@@ -327,30 +327,12 @@ def auto_sync_matches(db: Session) -> dict:
             p.injury_time = api_match["injury_time"]
             any_changed = True
 
-        # Sync live scores for non-finalized matches
-        if not p.finalizado:
-            if g_l is not None and g_v is not None:
-                if p.goles_local != g_l or p.goles_visitante != g_v:
-                    p.goles_local = g_l
-                    p.goles_visitante = g_v
-                    any_changed = True
-        
-        if api_match["finalizado"]:
-            if g_l is not None and g_v is not None:
-                # Update if not finalized, or if the score differs (self-healing correction)
-                if not p.finalizado or p.goles_local != g_l or p.goles_visitante != g_v:
-                    p.goles_local = g_l
-                    p.goles_visitante = g_v
-                    p.finalizado = True
-                    any_changed = True
-                    updated_ids.append(p.id_partido)
-                    check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
-                    
-                    # Auto resolve champion if it is the Final match
-                    if p.fase == 'Final':
-                            winner = p.equipo_local if g_l >= g_v else p.equipo_visitante
-                            from .utils import resolver_campeon_grupo_automatico
-                            resolver_campeon_grupo_automatico(db, winner)
+        # Sync live scores only — never mark as finalizado (manual only)
+        if g_l is not None and g_v is not None:
+            if p.goles_local != g_l or p.goles_visitante != g_v:
+                p.goles_local = g_l
+                p.goles_visitante = g_v
+                any_changed = True
 
     if any_changed:
         db.commit()
