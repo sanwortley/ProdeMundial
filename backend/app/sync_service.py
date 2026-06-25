@@ -327,12 +327,26 @@ def auto_sync_matches(db: Session) -> dict:
             p.injury_time = api_match["injury_time"]
             any_changed = True
 
-        # Sync live scores only — never mark as finalizado (manual only)
+        # Sync live scores
         if g_l is not None and g_v is not None:
             if p.goles_local != g_l or p.goles_visitante != g_v:
                 p.goles_local = g_l
                 p.goles_visitante = g_v
                 any_changed = True
+
+        # Finalize if API says FINISHED
+        if api_match["finalizado"] and g_l is not None and g_v is not None:
+            p.goles_local = g_l
+            p.goles_visitante = g_v
+            p.finalizado = True
+            any_changed = True
+            updated_ids.append(p.id_partido)
+            check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+
+            if p.fase == 'Final':
+                winner = p.equipo_local if g_l >= g_v else p.equipo_visitante
+                from .utils import resolver_campeon_grupo_automatico
+                resolver_campeon_grupo_automatico(db, winner)
 
     if any_changed:
         db.commit()
