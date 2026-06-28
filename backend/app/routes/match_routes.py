@@ -105,19 +105,30 @@ def update_match_result(
     partido.goles_local = result_in.goles_local
     partido.goles_visitante = result_in.goles_visitante
     partido.finalizado = result_in.finalizado
-    
+
+    # Determine actual winner (for knockout scoring)
+    if result_in.finalizado:
+        if result_in.goles_local > result_in.goles_visitante:
+            partido.ganador = partido.equipo_local
+        elif result_in.goles_visitante > result_in.goles_local:
+            partido.ganador = partido.equipo_visitante
+        elif result_in.ganador:
+            partido.ganador = result_in.ganador  # manual ET/penalty winner
+
     db.commit()
     db.refresh(partido)
-    
+
     # Check if this is a knockout match that should advance teams
     if partido.finalizado:
+        winner_for_bracket = partido.ganador or partido.equipo_local
         check_and_advance_knockouts(
-            db, 
-            partido.id_partido, 
-            partido.equipo_local, 
-            partido.equipo_visitante, 
-            partido.goles_local, 
-            partido.goles_visitante
+            db,
+            partido.id_partido,
+            partido.equipo_local,
+            partido.equipo_visitante,
+            partido.goles_local,
+            partido.goles_visitante,
+            override_winner=winner_for_bracket
         )
     
     # Recalculate points for all groups that have predictions for this match

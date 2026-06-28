@@ -102,6 +102,7 @@ def upsert_prediction(
         if db_pred:
             db_pred.goles_local_predicho = pred_in.goles_local_predicho
             db_pred.goles_visitante_predicho = pred_in.goles_visitante_predicho
+            db_pred.ganador_predicho = pred_in.ganador_predicho
             db_pred.usa_joker = pred_in.usa_joker
             db_pred.usa_doble = pred_in.usa_doble
             db_pred.fecha_carga = datetime.utcnow()
@@ -112,6 +113,7 @@ def upsert_prediction(
                 id_partido=pred_in.id_partido,
                 goles_local_predicho=pred_in.goles_local_predicho,
                 goles_visitante_predicho=pred_in.goles_visitante_predicho,
+                ganador_predicho=pred_in.ganador_predicho,
                 usa_joker=pred_in.usa_joker,
                 usa_doble=pred_in.usa_doble
             )

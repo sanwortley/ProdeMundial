@@ -255,9 +255,21 @@ def sync_results():
                         partido.finalizado = True
                         affected_match_ids.append(partido.id_partido)
                         updated_count += 1
+
+                        # Determine winner (auto for decisive; penalty winner from API if available)
+                        pen_local = game.get("pen_local") or game.get("penalties_home")
+                        pen_visit = game.get("pen_away") or game.get("penalties_away")
+                        if g_local > g_visit:
+                            partido.ganador = partido.equipo_local
+                        elif g_visit > g_local:
+                            partido.ganador = partido.equipo_visitante
+                        elif pen_local is not None and pen_visit is not None:
+                            partido.ganador = partido.equipo_local if pen_local > pen_visit else partido.equipo_visitante
+                        # else: ganador stays None until admin sets it manually
+
                         logger.info(
                             f"  ✓ {partido.equipo_local} {g_local}-{g_visit} "
-                            f"{partido.equipo_visitante} (Finalizado)"
+                            f"{partido.equipo_visitante} (Finalizado, ganador={partido.ganador})"
                         )
 
                         is_knockout = partido.fase not in ["Fecha 1", "Fecha 2", "Fecha 3"]
@@ -265,13 +277,14 @@ def sync_results():
                             check_and_advance_knockouts(
                                 db, partido.id_partido,
                                 partido.equipo_local, partido.equipo_visitante,
-                                g_local, g_visit
+                                g_local, g_visit,
+                                override_winner=partido.ganador
                             )
 
                         if partido.fase == 'Final':
-                            winner = partido.equipo_local if g_local >= g_visit else partido.equipo_visitante
+                            final_winner = partido.ganador or (partido.equipo_local if g_local >= g_visit else partido.equipo_visitante)
                             from .utils import resolver_campeon_grupo_automatico
-                            resolver_campeon_grupo_automatico(db, winner)
+                            resolver_campeon_grupo_automatico(db, final_winner)
 
         # Commit all changes (live and/or finalized)
         if affected_match_ids or any_live_changed:
@@ -293,6 +306,8 @@ def sync_results():
                 logger.info("[AutoSync] 🔴 Datos en vivo actualizados en BD.")
         else:
             logger.info("[AutoSync] ⏳ Sin cambios nuevos.")
+            # Still check if 16avos need populating (e.g. after server restart)
+            _auto_populate_16avos(db)
 
     except Exception as e:
         logger.warning(f"[AutoSync] ⏳ API externa worldcup26.ir no disponible temporalmente: {e}")

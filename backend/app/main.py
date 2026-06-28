@@ -271,6 +271,24 @@ with engine.connect() as conn:
     except Exception:
         pass  # Column already exists
 
+# Migration: add ganador column to partidos (for knockout ET/penalty winner)
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE partidos ADD COLUMN ganador TEXT"))
+        conn.commit()
+        logger.info("Added ganador column to partidos table (migration)")
+    except Exception:
+        pass
+
+# Migration: add ganador_predicho column to predicciones (playoff winner prediction)
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE predicciones ADD COLUMN ganador_predicho TEXT"))
+        conn.commit()
+        logger.info("Added ganador_predicho column to predicciones table (migration)")
+    except Exception:
+        pass
+
 # Migration: mark matches as IN_PLAY if their kickoff time has passed but status still SCHEDULED
 db = SessionLocal()
 try:

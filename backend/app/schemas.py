@@ -75,6 +75,7 @@ class PartidoResponse(PartidoBase):
     goles_local: Optional[int] = None
     goles_visitante: Optional[int] = None
     finalizado: bool
+    ganador: Optional[str] = None
     status: Optional[str] = "SCHEDULED"
     minute: Optional[int] = None
     injury_time: Optional[int] = 0
@@ -92,6 +93,7 @@ class PartidoResultUpdate(BaseModel):
     goles_local: int
     goles_visitante: int
     finalizado: bool = True
+    ganador: Optional[str] = None  # for ET/penalty knockout matches
 
 # --- Prediction Schemas ---
 class PrediccionCreate(BaseModel):
@@ -99,6 +101,7 @@ class PrediccionCreate(BaseModel):
     id_partido: int
     goles_local_predicho: int = Field(..., ge=0)
     goles_visitante_predicho: int = Field(..., ge=0)
+    ganador_predicho: Optional[str] = None
     usa_joker: bool = False
     usa_doble: bool = False
 
@@ -109,6 +112,7 @@ class PrediccionResponse(BaseModel):
     id_partido: int
     goles_local_predicho: int
     goles_visitante_predicho: int
+    ganador_predicho: Optional[str] = None
     puntos_obtenidos: int
     usa_joker: bool
     usa_doble: bool

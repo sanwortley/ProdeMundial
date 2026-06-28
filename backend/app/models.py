@@ -71,6 +71,7 @@ class Partido(Base):
     goles_local = Column(Integer, nullable=True)
     goles_visitante = Column(Integer, nullable=True)
     finalizado = Column(Boolean, default=False)
+    ganador = Column(String, nullable=True)  # actual winner (set when finalized; needed for ET/penalty matches)
     status = Column(String, default="SCHEDULED")
     minute = Column(Integer, nullable=True)
     injury_time = Column(Integer, default=0)
@@ -88,6 +89,7 @@ class Prediccion(Base):
     id_partido = Column(Integer, ForeignKey("partidos.id_partido", ondelete="CASCADE"), nullable=False)
     goles_local_predicho = Column(Integer, nullable=False)
     goles_visitante_predicho = Column(Integer, nullable=False)
+    ganador_predicho = Column(String, nullable=True)  # predicted winner for knockout matches
     puntos_obtenidos = Column(Integer, default=0)
     usa_joker = Column(Boolean, default=False)
     usa_doble = Column(Boolean, default=False)

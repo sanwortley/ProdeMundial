@@ -1,31 +1,41 @@
 from sqlalchemy.orm import Session
 from .models import Prediccion, Partido, GrupoUsuario, PrediccionCampeon
 
+KNOCKOUT_PHASES = {
+    "Dieciseisavos de Final", "Octavos de Final",
+    "Cuartos de Final", "Semifinal", "Final"
+}
+
 def calcular_puntos_prediccion(
-    r_l: int, r_v: int, p_l: int, p_v: int, joker: bool = False, doble: bool = False
+    r_l: int, r_v: int, p_l: int, p_v: int,
+    joker: bool = False, doble: bool = False,
+    ganador_real: str = None, ganador_predicho: str = None,
+    is_knockout: bool = False
 ) -> int:
     is_exact = (r_l == p_l) and (r_v == p_v)
-    
-    # Real outcome: 1 (local win), -1 (visitor win), 0 (draw)
     real_outcome = 1 if r_l > r_v else (-1 if r_l < r_v else 0)
-    # Predicted outcome: 1 (local win), -1 (visitor win), 0 (draw)
     pred_outcome = 1 if p_l > p_v else (-1 if p_l < p_v else 0)
     correct_outcome = (real_outcome == pred_outcome)
-    
+
     if joker:
-        # Joker match: exact = +30, wrong = -10
-        return 30 if is_exact else -10
+        base = 30 if is_exact else -10
     elif doble:
-        # Double match: exact = +20, wrong = 0 (even if outcome was correct)
-        return 20 if is_exact else 0
+        base = 20 if is_exact else 0
     else:
-        # Normal prediction: exact = +10, outcome = +5, wrong = 0
         if is_exact:
-            return 10
+            base = 10
         elif correct_outcome:
-            return 5
+            base = 5
         else:
-            return 0
+            base = 0
+
+    # +5 for correct winner prediction in knockout rounds
+    winner_bonus = 0
+    if is_knockout and ganador_real and ganador_predicho:
+        if ganador_real.strip().lower() == ganador_predicho.strip().lower():
+            winner_bonus = 5
+
+    return base + winner_bonus
 
 
 def recalcular_puntos_grupo(db: Session, id_grupo: int):
@@ -53,13 +63,17 @@ def recalcular_puntos_grupo(db: Session, id_grupo: int):
         for pred in predicciones:
             if pred.id_partido in finished_match_ids:
                 partido = partidos_dict[pred.id_partido]
+                is_ko = partido.fase in KNOCKOUT_PHASES
                 pred.puntos_obtenidos = calcular_puntos_prediccion(
                     partido.goles_local,
                     partido.goles_visitante,
                     pred.goles_local_predicho,
                     pred.goles_visitante_predicho,
                     joker=pred.usa_joker,
-                    doble=pred.usa_doble
+                    doble=pred.usa_doble,
+                    ganador_real=partido.ganador if is_ko else None,
+                    ganador_predicho=pred.ganador_predicho if is_ko else None,
+                    is_knockout=is_ko,
                 )
             else:
                 pred.puntos_obtenidos = 0

@@ -148,13 +148,15 @@ def map_english_to_spanish(name: str) -> str:
     return name
 
 
-def check_and_advance_knockouts(db: Session, match_id: int, equipo_local: str, equipo_visitante: str, goles_local: int, goles_visitante: int):
-    if goles_local > goles_visitante:
+def check_and_advance_knockouts(db: Session, match_id: int, equipo_local: str, equipo_visitante: str, goles_local: int, goles_visitante: int, override_winner: str = None):
+    if override_winner:
+        winner = override_winner
+    elif goles_local > goles_visitante:
         winner = equipo_local
     elif goles_visitante > goles_local:
         winner = equipo_visitante
     else:
-        winner = equipo_local
+        winner = equipo_local  # fallback (shouldn't happen in real knockouts)
     placeholder = f"Ganador Partido {match_id}"
     for m in db.query(Partido).filter(Partido.equipo_local == placeholder).all():
         m.equipo_local = winner
@@ -279,6 +281,7 @@ def auto_sync_matches(db: Session) -> dict:
         h_goals = score.get("home")
         a_goals = score.get("away")
         
+        pen_score = f.get("score", {}).get("penalties") or {}
         fixtures_map[(normalize_name(home), normalize_name(away))] = {
             "goles_local": h_goals,
             "goles_visitante": a_goals,
@@ -286,7 +289,8 @@ def auto_sync_matches(db: Session) -> dict:
             "fecha": match_date,
             "status": status,
             "minute": f.get("minute"),
-            "injury_time": f.get("injuryTime") or 0
+            "injury_time": f.get("injuryTime") or 0,
+            "penalties": pen_score,
         }
 
     updated_ids = []
@@ -341,12 +345,26 @@ def auto_sync_matches(db: Session) -> dict:
             p.finalizado = True
             any_changed = True
             updated_ids.append(p.id_partido)
-            check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v)
+
+            # Determine winner (auto for decisive; use penalty scores if draw)
+            pen = api_match.get("penalties", {}) or {}
+            pen_home = pen.get("home")
+            pen_away = pen.get("away")
+            if score_swapped and pen_home is not None:
+                pen_home, pen_away = pen_away, pen_home
+            if g_l > g_v:
+                p.ganador = p.equipo_local
+            elif g_v > g_l:
+                p.ganador = p.equipo_visitante
+            elif pen_home is not None and pen_away is not None:
+                p.ganador = p.equipo_local if pen_home > pen_away else p.equipo_visitante
+
+            check_and_advance_knockouts(db, p.id_partido, p.equipo_local, p.equipo_visitante, g_l, g_v, override_winner=p.ganador)
 
             if p.fase == 'Final':
-                winner = p.equipo_local if g_l >= g_v else p.equipo_visitante
+                final_winner = p.ganador or (p.equipo_local if g_l >= g_v else p.equipo_visitante)
                 from .utils import resolver_campeon_grupo_automatico
-                resolver_campeon_grupo_automatico(db, winner)
+                resolver_campeon_grupo_automatico(db, final_winner)
 
     if any_changed:
         db.commit()
