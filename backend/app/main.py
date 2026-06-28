@@ -396,6 +396,74 @@ except Exception as e:
 finally:
     db.close()
 
+# Migration: fix LAST_32 (Dieciseisavos) team names and all knockout round dates from real API data
+db = SessionLocal()
+try:
+    import datetime as _dt
+    last32_fixtures = {
+        73: ("Sudáfrica",      "Canadá",                 _dt.datetime(2026, 6, 28, 19, 0)),
+        74: ("Brasil",         "Japón",                  _dt.datetime(2026, 6, 29, 17, 0)),
+        75: ("Alemania",       "Paraguay",               _dt.datetime(2026, 6, 29, 20, 30)),
+        76: ("Países Bajos",   "Marruecos",              _dt.datetime(2026, 6, 30,  1, 0)),
+        77: ("Costa de Marfil","Noruega",                _dt.datetime(2026, 6, 30, 17, 0)),
+        78: ("Francia",        "Suecia",                 _dt.datetime(2026, 6, 30, 21, 0)),
+        79: ("México",         "Ecuador",                _dt.datetime(2026, 7,  1,  1, 0)),
+        80: ("Inglaterra",     "Congo",                  _dt.datetime(2026, 7,  1, 16, 0)),
+        81: ("Bélgica",        "Senegal",                _dt.datetime(2026, 7,  1, 20, 0)),
+        82: ("Estados Unidos", "Bosnia y Herzegovina",   _dt.datetime(2026, 7,  2,  0, 0)),
+        83: ("España",         "Austria",                _dt.datetime(2026, 7,  2, 19, 0)),
+        84: ("Portugal",       "Croacia",                _dt.datetime(2026, 7,  2, 23, 0)),
+        85: ("Suiza",          "Argelia",                _dt.datetime(2026, 7,  3,  3, 0)),
+        86: ("Australia",      "Egipto",                 _dt.datetime(2026, 7,  3, 18, 0)),
+        87: ("Argentina",      "Cabo Verde",             _dt.datetime(2026, 7,  3, 22, 0)),
+        88: ("Colombia",       "Ghana",                  _dt.datetime(2026, 7,  4,  1, 30)),
+    }
+    knockout_dates = {
+        89:  _dt.datetime(2026, 7,  4, 17, 0),
+        90:  _dt.datetime(2026, 7,  4, 21, 0),
+        91:  _dt.datetime(2026, 7,  5, 20, 0),
+        92:  _dt.datetime(2026, 7,  6,  0, 0),
+        93:  _dt.datetime(2026, 7,  6, 19, 0),
+        94:  _dt.datetime(2026, 7,  7,  0, 0),
+        95:  _dt.datetime(2026, 7,  7, 16, 0),
+        96:  _dt.datetime(2026, 7,  7, 20, 0),
+        97:  _dt.datetime(2026, 7,  9, 20, 0),
+        98:  _dt.datetime(2026, 7, 10, 19, 0),
+        99:  _dt.datetime(2026, 7, 11, 21, 0),
+        100: _dt.datetime(2026, 7, 12,  1, 0),
+        101: _dt.datetime(2026, 7, 14, 19, 0),
+        102: _dt.datetime(2026, 7, 15, 19, 0),
+    }
+    from .models import Partido
+    fixed = 0
+    for pid, (local, visit, fecha) in last32_fixtures.items():
+        m = db.query(Partido).filter(Partido.id_partido == pid).first()
+        if m and not m.finalizado:
+            changed = False
+            if m.equipo_local != local or m.equipo_visitante != visit:
+                m.equipo_local = local
+                m.equipo_visitante = visit
+                changed = True
+            if m.fecha != fecha:
+                m.fecha = fecha
+                changed = True
+            if changed:
+                logger.info(f"Fixed LAST_32 #{pid}: {local} vs {visit} @ {fecha}")
+                fixed += 1
+    for pid, fecha in knockout_dates.items():
+        m = db.query(Partido).filter(Partido.id_partido == pid).first()
+        if m and not m.finalizado and m.fecha != fecha:
+            m.fecha = fecha
+            fixed += 1
+    if fixed:
+        db.commit()
+        logger.info(f"Fixed {fixed} knockout match(es) team names / dates")
+except Exception as e:
+    logger.warning(f"Could not fix knockout fixtures: {e}")
+    db.rollback()
+finally:
+    db.close()
+
 scheduler = AsyncIOScheduler()
 
 
