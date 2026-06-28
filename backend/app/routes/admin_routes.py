@@ -188,6 +188,162 @@ def update_match_teams(
 FECHA2_IDS = list(range(25, 49))
 
 
+# ── Grupos del Mundial 2026 ───────────────────────────────────────────────────
+GRUPOS_WC2026 = {
+    'A': ['México', 'Sudáfrica', 'Corea del Sur', 'República Checa'],
+    'B': ['Canadá', 'Bosnia y Herzegovina', 'Qatar', 'Suiza'],
+    'C': ['Brasil', 'Marruecos', 'Haití', 'Escocia'],
+    'D': ['Turquía', 'Estados Unidos', 'Paraguay', 'Australia'],
+    'E': ['Alemania', 'Ecuador', 'Costa de Marfil', 'Curazao'],
+    'F': ['Países Bajos', 'Japón', 'Túnez', 'Suecia'],
+    'G': ['Bélgica', 'Irán', 'Egipto', 'Nueva Zelanda'],
+    'H': ['España', 'Arabia Saudita', 'Uruguay', 'Cabo Verde'],
+    'I': ['Francia', 'Senegal', 'Irak', 'Noruega'],
+    'J': ['Argentina', 'Argelia', 'Austria', 'Jordania'],
+    'K': ['Portugal', 'Congo', 'Uzbekistán', 'Colombia'],
+    'L': ['Inglaterra', 'Croacia', 'Ghana', 'Panamá'],
+}
+
+# Partidos 73-84: 1° vs 2° de grupos cruzados
+_DIECISEISAVOS = {
+    73: ('1A', '2B'),
+    74: ('1C', '2D'),
+    75: ('1E', '2F'),
+    76: ('1G', '2H'),
+    77: ('1I', '2J'),
+    78: ('1K', '2L'),
+    79: ('1B', '2A'),
+    80: ('1D', '2C'),
+    81: ('1F', '2E'),
+    82: ('1H', '2G'),
+    83: ('1J', '2I'),
+    84: ('1L', '2K'),
+}
+
+# Partidos 85-88: mejor 3ro de cada sección de 3 grupos
+_MEJOR_TERCERO = {
+    85: (['A', 'B', 'C'], ['D', 'E', 'F']),
+    86: (['G', 'H', 'I'], ['J', 'K', 'L']),
+    87: (['A', 'E', 'I'], ['B', 'F', 'J']),
+    88: (['C', 'G', 'K'], ['D', 'H', 'L']),
+}
+
+
+def _compute_group_standings(db, teams: list) -> list:
+    """Returns list of (team_name, stats_dict) sorted by pts, GD, GF desc."""
+    stats = {t: {'pts': 0, 'gf': 0, 'ga': 0, 'gd': 0} for t in teams}
+
+    matches = db.query(Partido).filter(
+        Partido.finalizado == True,
+        Partido.fase.in_(['Fecha 1', 'Fecha 2', 'Fecha 3']),
+        Partido.equipo_local.in_(teams),
+        Partido.equipo_visitante.in_(teams),
+    ).all()
+
+    for m in matches:
+        loc = m.equipo_local
+        vis = m.equipo_visitante
+        gl, gv = m.goles_local, m.goles_visitante
+        if loc not in stats or vis not in stats or gl is None or gv is None:
+            continue
+        stats[loc]['gf'] += gl
+        stats[loc]['ga'] += gv
+        stats[loc]['gd'] += gl - gv
+        stats[vis]['gf'] += gv
+        stats[vis]['ga'] += gl
+        stats[vis]['gd'] += gv - gl
+        if gl > gv:
+            stats[loc]['pts'] += 3
+        elif gl == gv:
+            stats[loc]['pts'] += 1
+            stats[vis]['pts'] += 1
+        else:
+            stats[vis]['pts'] += 3
+
+    return sorted(stats.items(), key=lambda x: (-x[1]['pts'], -x[1]['gd'], -x[1]['gf']))
+
+
+def _best_third(standings_by_group: dict, group_letters: list):
+    """Returns the best 3rd-place team name from a set of groups."""
+    candidates = []
+    for letter in group_letters:
+        s = standings_by_group.get(letter, [])
+        if len(s) >= 3:
+            candidates.append(s[2])  # 3rd place (0-indexed)
+    if not candidates:
+        return None
+    best = sorted(candidates, key=lambda x: (-x[1]['pts'], -x[1]['gd'], -x[1]['gf']))[0]
+    return best[0]
+
+
+class Populate16avosResult(BaseModel):
+    partidos_actualizados: int
+    detalle: list
+
+
+@router.post("/admin/populate-16avos", response_model=Populate16avosResult)
+def populate_16avos(
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(_require_admin),
+):
+    """Calcula standings de grupos y puebla los 16avos con los equipos clasificados. Admin only."""
+
+    # Compute standings for all 12 groups
+    standings = {letter: _compute_group_standings(db, teams) for letter, teams in GRUPOS_WC2026.items()}
+
+    detalle = []
+    updated = 0
+
+    # Fill partidos 73-84 (1° vs 2° cruzados)
+    for partido_id, (local_code, visit_code) in _DIECISEISAVOS.items():
+        partido = db.query(Partido).filter(Partido.id_partido == partido_id).first()
+        if not partido:
+            continue
+
+        local_pos = int(local_code[0]) - 1   # 0=1st, 1=2nd
+        local_letter = local_code[1]
+        visit_pos = int(visit_code[0]) - 1
+        visit_letter = visit_code[1]
+
+        local_standing = standings.get(local_letter, [])
+        visit_standing = standings.get(visit_letter, [])
+
+        new_local = local_standing[local_pos][0] if len(local_standing) > local_pos else None
+        new_visit = visit_standing[visit_pos][0] if len(visit_standing) > visit_pos else None
+
+        if new_local or new_visit:
+            old = f"{partido.equipo_local} vs {partido.equipo_visitante}"
+            if new_local:
+                partido.equipo_local = new_local
+            if new_visit:
+                partido.equipo_visitante = new_visit
+            new = f"{partido.equipo_local} vs {partido.equipo_visitante}"
+            detalle.append({"partido": partido_id, "antes": old, "despues": new})
+            updated += 1
+
+    # Fill partidos 85-88 (mejor 3ro de sección)
+    for partido_id, (local_groups, visit_groups) in _MEJOR_TERCERO.items():
+        partido = db.query(Partido).filter(Partido.id_partido == partido_id).first()
+        if not partido:
+            continue
+
+        new_local = _best_third(standings, local_groups)
+        new_visit = _best_third(standings, visit_groups)
+
+        if new_local or new_visit:
+            old = f"{partido.equipo_local} vs {partido.equipo_visitante}"
+            if new_local:
+                partido.equipo_local = new_local
+            if new_visit:
+                partido.equipo_visitante = new_visit
+            new = f"{partido.equipo_local} vs {partido.equipo_visitante}"
+            detalle.append({"partido": partido_id, "antes": old, "despues": new})
+            updated += 1
+
+    db.commit()
+    return Populate16avosResult(partidos_actualizados=updated, detalle=detalle)
+
+
 def _build_team_confidence(db):
     fecha1_matches = db.query(Partido).filter(Partido.fase == "Fecha 1").all()
     fecha1_ids = {m.id_partido for m in fecha1_matches}

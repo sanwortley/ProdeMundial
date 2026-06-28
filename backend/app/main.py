@@ -303,6 +303,19 @@ try:
         46: ("Panamá", "Croacia"),
         48: ("Túnez", "Japón"),
         61: ("Uruguay", "España"),
+        # Fecha 2 - correcciones de cruces de grupo incorrectos
+        35: ("Bélgica", "Irán"),
+        37: ("España", "Arabia Saudita"),
+        43: ("Portugal", "Uzbekistán"),
+        45: ("Inglaterra", "Ghana"),
+        # Fecha 3 - correcciones de cruces de grupo incorrectos
+        59: ("Egipto", "Irán"),
+        60: ("Nueva Zelanda", "Bélgica"),
+        62: ("Cabo Verde", "Arabia Saudita"),
+        67: ("Panamá", "Inglaterra"),
+        68: ("Croacia", "Ghana"),
+        69: ("Colombia", "Portugal"),
+        70: ("Congo", "Uzbekistán"),
     }
     from .models import Partido
     for pid, (local, visit) in fixes.items():

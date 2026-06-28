@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
-import { ShieldAlert, Save, Check, ArrowLeft, Search } from 'lucide-react'
+import { ShieldAlert, Save, Check, ArrowLeft, Search, Trophy, RefreshCw, Zap } from 'lucide-react'
 
 const AdminResults = () => {
   const { user } = useAuth()
@@ -14,6 +14,10 @@ const AdminResults = () => {
   const [error, setError] = useState('')
   const [selectedFase, setSelectedFase] = useState('')
   const [scores, setScores] = useState({})
+  const [populating16avos, setPopulating16avos] = useState(false)
+  const [populate16avosResult, setPopulate16avosResult] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
 
   useEffect(() => {
     if (!user?.is_admin) {
@@ -52,6 +56,37 @@ const AdminResults = () => {
       ...prev,
       [id]: { ...prev[id], [field]: value === '' ? '' : parseInt(value) || 0 }
     }))
+  }
+
+  const handlePopulate16avos = async () => {
+    setPopulating16avos(true)
+    setPopulate16avosResult(null)
+    try {
+      const res = await api.post('/admin/populate-16avos')
+      setPopulate16avosResult({ ok: true, ...res.data })
+      await loadMatches()
+    } catch (e) {
+      setPopulate16avosResult({ ok: false, error: e.response?.data?.detail || 'Error al poblar 16avos' })
+    } finally {
+      setPopulating16avos(false)
+    }
+  }
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await api.post('/matches/auto-sync')
+      setSyncResult({ ok: true, msg: res.data?.detail || 'Sync iniciado' })
+      setTimeout(() => {
+        loadMatches()
+        setSyncResult(null)
+      }, 3000)
+    } catch (e) {
+      setSyncResult({ ok: false, error: e.response?.data?.detail || 'Error al sincronizar' })
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const handleSave = async (matchId) => {
@@ -114,6 +149,48 @@ const AdminResults = () => {
           {error}
         </div>
       )}
+
+      {/* Admin quick-action tools */}
+      <div className="glass-card rounded-2xl p-4 border border-amber-500/20 bg-amber-500/5 flex flex-col gap-3">
+        <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Herramientas Admin</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-slate-800 border border-slate-700 hover:border-soccer-green/40 hover:text-soccer-green transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sync Resultados'}
+          </button>
+          <button
+            onClick={handlePopulate16avos}
+            disabled={populating16avos}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-slate-800 border border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-300 text-amber-400 transition-all disabled:opacity-50"
+          >
+            <Trophy className={`w-3.5 h-3.5 ${populating16avos ? 'animate-pulse' : ''}`} />
+            {populating16avos ? 'Calculando...' : 'Poblar 16avos'}
+          </button>
+        </div>
+        {syncResult && (
+          <p className={`text-xs font-semibold ${syncResult.ok ? 'text-soccer-green' : 'text-red-400'}`}>
+            {syncResult.ok ? `✓ ${syncResult.msg}` : `✗ ${syncResult.error}`}
+          </p>
+        )}
+        {populate16avosResult && (
+          <div className={`text-xs font-semibold ${populate16avosResult.ok ? 'text-amber-300' : 'text-red-400'}`}>
+            {populate16avosResult.ok ? (
+              <>
+                <p>✓ {populate16avosResult.partidos_actualizados} partido(s) actualizados en 16avos</p>
+                {populate16avosResult.detalle?.slice(0, 4).map((d, i) => (
+                  <p key={i} className="text-[10px] text-slate-400 mt-0.5">#{d.partido}: {d.despues}</p>
+                ))}
+              </>
+            ) : (
+              <p>✗ {populate16avosResult.error}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="glass-card rounded-2xl p-4 border border-slate-800 flex flex-col gap-2">
         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Seleccionar Fecha / Ronda</label>
