@@ -287,6 +287,8 @@ def sync_results():
                 for (g_id,) in groups:
                     recalcular_puntos_grupo(db, g_id)
                 logger.info(f"[AutoSync] ✅ {updated_count} partido(s) finalizado(s). Puntos recalculados.")
+                # Auto-populate 16avos when group stage matches finish
+                _auto_populate_16avos(db)
             if any_live_changed:
                 logger.info("[AutoSync] 🔴 Datos en vivo actualizados en BD.")
         else:
@@ -299,4 +301,67 @@ def sync_results():
         db.close()
 
     return updated_count
+
+
+def _auto_populate_16avos(db):
+    """Auto-populate round-of-16 brackets when group stage results are available."""
+    from .routes.admin_routes import (
+        GRUPOS_WC2026, _DIECISEISAVOS, _MEJOR_TERCERO,
+        _compute_group_standings, _best_third,
+    )
+
+    # Only run if at least one 16avos match still has a placeholder team name
+    r16_matches = db.query(Partido).filter(
+        Partido.fase == "Dieciseisavos de Final",
+        Partido.finalizado == False,
+    ).all()
+
+    needs_update = any(
+        len(m.equipo_local) <= 2 or len(m.equipo_visitante) <= 2
+        or m.equipo_local.startswith("Mejor")
+        or m.equipo_visitante.startswith("Mejor")
+        for m in r16_matches
+    )
+    if not needs_update:
+        return
+
+    standings = {
+        letter: _compute_group_standings(db, teams)
+        for letter, teams in GRUPOS_WC2026.items()
+    }
+
+    updated = 0
+    for partido_id, (local_code, visit_code) in _DIECISEISAVOS.items():
+        partido = db.query(Partido).filter(Partido.id_partido == partido_id).first()
+        if not partido or partido.finalizado:
+            continue
+        lpos, ll = int(local_code[0]) - 1, local_code[1]
+        vpos, vl = int(visit_code[0]) - 1, visit_code[1]
+        ls = standings.get(ll, [])
+        vs = standings.get(vl, [])
+        new_local = ls[lpos][0] if len(ls) > lpos else None
+        new_visit = vs[vpos][0] if len(vs) > vpos else None
+        if new_local and partido.equipo_local != new_local:
+            partido.equipo_local = new_local
+            updated += 1
+        if new_visit and partido.equipo_visitante != new_visit:
+            partido.equipo_visitante = new_visit
+            updated += 1
+
+    for partido_id, (local_groups, visit_groups) in _MEJOR_TERCERO.items():
+        partido = db.query(Partido).filter(Partido.id_partido == partido_id).first()
+        if not partido or partido.finalizado:
+            continue
+        new_local = _best_third(standings, local_groups)
+        new_visit = _best_third(standings, visit_groups)
+        if new_local and partido.equipo_local != new_local:
+            partido.equipo_local = new_local
+            updated += 1
+        if new_visit and partido.equipo_visitante != new_visit:
+            partido.equipo_visitante = new_visit
+            updated += 1
+
+    if updated:
+        db.commit()
+        logger.info(f"[AutoSync] 🏆 16avos auto-poblados: {updated} equipo(s) actualizado(s)")
 
