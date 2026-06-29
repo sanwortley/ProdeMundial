@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
-import { ShieldAlert, Save, Check, ArrowLeft, Search, Trophy, RefreshCw, Zap } from 'lucide-react'
+import { ShieldAlert, Save, Check, ArrowLeft, Search, Trophy, RefreshCw, Zap, Download } from 'lucide-react'
 
 const AdminResults = () => {
   const { user } = useAuth()
@@ -18,6 +18,7 @@ const AdminResults = () => {
   const [populate16avosResult, setPopulate16avosResult] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
+  const [backingUp, setBackingUp] = useState(false)
 
   useEffect(() => {
     if (!user?.is_admin) {
@@ -69,6 +70,25 @@ const AdminResults = () => {
       setPopulate16avosResult({ ok: false, error: e.response?.data?.detail || 'Error al poblar 16avos' })
     } finally {
       setPopulating16avos(false)
+    }
+  }
+
+  const handleBackup = async () => {
+    setBackingUp(true)
+    try {
+      const res = await api.get('/admin/backup/download', { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      const cd = res.headers['content-disposition'] || ''
+      const match = cd.match(/filename=([^\s;]+)/)
+      a.download = match ? match[1] : 'prode_backup.json'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      alert('Error al descargar backup: ' + (e.response?.data?.detail || e.message))
+    } finally {
+      setBackingUp(false)
     }
   }
 
@@ -169,6 +189,14 @@ const AdminResults = () => {
           >
             <Trophy className={`w-3.5 h-3.5 ${populating16avos ? 'animate-pulse' : ''}`} />
             {populating16avos ? 'Calculando...' : 'Poblar 16avos'}
+          </button>
+          <button
+            onClick={handleBackup}
+            disabled={backingUp}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-slate-800 border border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-300 text-blue-400 transition-all disabled:opacity-50"
+          >
+            <Download className={`w-3.5 h-3.5 ${backingUp ? 'animate-pulse' : ''}`} />
+            {backingUp ? 'Descargando...' : 'Backup DB'}
           </button>
         </div>
         {syncResult && (

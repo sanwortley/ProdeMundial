@@ -1,13 +1,15 @@
 import datetime
+import json
 import logging
 import random
 from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from ..database import get_db
-from ..models import Partido, Prediccion, Grupo, GrupoUsuario, Usuario
+from ..models import Partido, Prediccion, Grupo, GrupoUsuario, Usuario, PrediccionCampeon
 from ..auth import get_current_user
 from ..utils import recalcular_puntos_grupo
 
@@ -484,3 +486,51 @@ def recover_fecha2(
         usuarios_con_perfil=len(perfiles),
     )
 
+
+
+@router.get("/admin/backup/download")
+def download_backup(
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(_require_admin),
+):
+    """Download a full JSON backup of all critical tables. Admin only."""
+    def serialize(obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        return str(obj)
+
+    partidos = db.query(Partido).order_by(Partido.id_partido).all()
+    predicciones = db.query(Prediccion).order_by(Prediccion.id_prediccion).all()
+    grupos = db.query(Grupo).order_by(Grupo.id_grupo).all()
+    grupo_usuarios = db.query(GrupoUsuario).order_by(GrupoUsuario.id).all()
+    usuarios = db.query(Usuario).order_by(Usuario.id_usuario).all()
+    predicciones_campeon = db.query(PrediccionCampeon).order_by(PrediccionCampeon.id).all()
+
+    def row_to_dict(obj):
+        d = {}
+        for col in obj.__table__.columns:
+            val = getattr(obj, col.name)
+            if isinstance(val, (datetime.datetime, datetime.date)):
+                val = val.isoformat()
+            d[col.name] = val
+        return d
+
+    data = {
+        "backup_date": datetime.datetime.utcnow().isoformat() + "Z",
+        "partidos": [row_to_dict(p) for p in partidos],
+        "predicciones": [row_to_dict(p) for p in predicciones],
+        "grupos": [row_to_dict(g) for g in grupos],
+        "grupo_usuarios": [row_to_dict(gu) for gu in grupo_usuarios],
+        "usuarios": [row_to_dict(u) for u in usuarios],
+        "predicciones_campeon": [row_to_dict(pc) for pc in predicciones_campeon],
+    }
+
+    content = json.dumps(data, ensure_ascii=False, indent=2)
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"prode_backup_{timestamp}.json"
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
