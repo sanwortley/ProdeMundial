@@ -51,12 +51,17 @@ const Predictions = () => {
       setPredictions(predsRes.data)
       setGroupInfo(groupRes.data)
       
-      // Set default selected phase if not set yet
+      // Auto-select active phase (first with pending matches, else last phase)
       if (matchesRes.data.length > 0) {
-        const uniqueFases = [...new Set(matchesRes.data.map(m => m.fase))]
-        if (uniqueFases.length > 0) {
-          setSelectedFase(uniqueFases[0])
-        }
+        const allFases = [...new Set(matchesRes.data.map(m => m.fase))]
+        setSelectedFase(prev => {
+          if (prev) return prev
+          return (
+            allFases.find(f => matchesRes.data.some(m => m.fase === f && m.status === 'IN_PLAY')) ||
+            allFases.find(f => matchesRes.data.some(m => m.fase === f && !m.finalizado)) ||
+            allFases[allFases.length - 1]
+          )
+        })
       }
       
       if (champRes.data) {
@@ -110,17 +115,33 @@ const Predictions = () => {
 
   // Save/Update prediction handler
   const handleSavePrediction = async (predictionPayload) => {
-    // Inject group ID
     const payload = {
       ...predictionPayload,
       id_grupo: parseInt(groupId)
     }
-    
+
     await api.post('/predictions', payload)
-    
-    // Refresh predictions in state
+
     const predsRes = await api.get(`/predictions/group/${groupId}`)
-    setPredictions(predsRes.data)
+    const newPreds = predsRes.data
+    setPredictions(newPreds)
+
+    // Auto-scroll to next unpredicted match in the same phase
+    const savedId = predictionPayload.id_partido
+    const savedMatch = matches.find(m => m.id_partido === savedId)
+    if (savedMatch) {
+      const sameFase = matches.filter(m => m.fase === savedMatch.fase && !m.finalizado)
+      const savedIdx = sameFase.findIndex(m => m.id_partido === savedId)
+      const nextMatch = sameFase.slice(savedIdx + 1).find(m =>
+        !newPreds.some(p => p.id_partido === m.id_partido)
+      )
+      if (nextMatch) {
+        setTimeout(() => {
+          const el = document.getElementById(`match-${nextMatch.id_partido}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 250)
+      }
+    }
   }
 
   // Save Champion Prediction handler
@@ -351,16 +372,17 @@ const Predictions = () => {
                 <div className="flex flex-col gap-3">
                   {groupedFilteredMatches[fase].map(match => {
                     const pred = predictions.find(p => p.id_partido === match.id_partido)
-                    
+
                     return (
-                      <MatchCard
-                        key={match.id_partido}
-                        match={match}
-                        prediction={pred}
-                        onSave={handleSavePrediction}
-                        hasJokerUsed={hasJokerUsed}
-                        hasDobleUsed={doubleUsedInThisFase}
-                      />
+                      <div key={match.id_partido} id={`match-${match.id_partido}`}>
+                        <MatchCard
+                          match={match}
+                          prediction={pred}
+                          onSave={handleSavePrediction}
+                          hasJokerUsed={hasJokerUsed}
+                          hasDobleUsed={doubleUsedInThisFase}
+                        />
+                      </div>
                     )
                   })}
                 </div>
