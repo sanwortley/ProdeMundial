@@ -29,11 +29,15 @@ def calcular_puntos_prediccion(
         else:
             base = 0
 
-    # +5 for correct winner prediction in knockout rounds
+    # +5 for correct winner prediction: only when BOTH the predicted score
+    # AND the actual result were draws (i.e., went to ET/penalties)
     winner_bonus = 0
     if is_knockout and ganador_real and ganador_predicho:
-        if ganador_real.strip().lower() == ganador_predicho.strip().lower():
-            winner_bonus = 5
+        predicted_draw = (p_l == p_v)
+        actual_draw = (r_l == r_v)
+        if predicted_draw and actual_draw:
+            if ganador_real.strip().lower() == ganador_predicho.strip().lower():
+                winner_bonus = 5
 
     return base + winner_bonus
 
